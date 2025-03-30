@@ -68,7 +68,7 @@ export class CanvasManager {
         this.canvas.style.width = `${this.canvasSize.width}px`;
         this.canvas.style.height = `${this.canvasSize.height}px`;
         
-        console.log(`Canvas dimensions updated: ${this.canvasSize.width}px × ${this.canvasSize.height}px`);
+        // Canvas dimensions updated
     }
     
     centerCanvas() {
@@ -108,7 +108,7 @@ export class CanvasManager {
             }
         }
         
-        console.log('All elements cleared from canvas');
+        // All elements cleared from canvas
     }
     
     /**
@@ -127,7 +127,7 @@ export class CanvasManager {
         // Redraw the grid with updated settings
         this.gridManager.drawGrid();
         
-        console.log('Canvas viewport reset to default');
+        // Canvas viewport reset to default
     }
     
     // Delegate grid drawing to grid manager
@@ -409,16 +409,15 @@ export class CanvasManager {
     
     // Paste copied elements
     pasteElements(offsetX = 20, offsetY = 20) {
-        console.log('!!! Canvas: Attempting to paste elements');
-        console.log('!!! Canvas: Current copied elements in ElementManager:', this.elementManager.copiedElements);
+        // Attempting to paste elements
         
         // Delegate to ElementManager
         const count = this.elementManager.pasteElements();
         
-        console.log('!!! Canvas: Paste returned count:', count);
+        // Paste operation completed
         if (count > 0) {
             // Update selection UI
-            console.log('!!! Canvas: Updating multi-selection UI');
+            // Updating multi-selection UI
             this.updateMultiSelectionUI();
         }
     }
@@ -671,7 +670,7 @@ export class CanvasManager {
         
         // Keyboard shortcuts for element manipulation
         document.addEventListener('keydown', (e) => {
-            console.log('!!! KEYBOARD EVENT DETECTED:', e.key, 'Meta/Ctrl:', e.metaKey || e.ctrlKey);
+            // Keyboard shortcut detected
             
             // Delete key pressed
             if (e.key === 'Delete' || e.key === 'Backspace') {
@@ -684,7 +683,7 @@ export class CanvasManager {
             
             // Copy (Ctrl+C)
             if (e.key === 'c' && (e.ctrlKey || e.metaKey)) {
-                console.log('!!! COPY SHORTCUT DETECTED');
+                // Copy shortcut detected
                 if (this.elementManager.selectedElements.length > 0) {
                     this.copySelectedElements();
                     e.preventDefault();
@@ -693,7 +692,7 @@ export class CanvasManager {
             
             // Paste (Ctrl+V)
             if (e.key === 'v' && (e.ctrlKey || e.metaKey)) {
-                console.log('!!! PASTE SHORTCUT DETECTED');
+                // Paste shortcut detected
                 this.pasteElements();
                 e.preventDefault();
             }

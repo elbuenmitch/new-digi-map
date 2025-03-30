@@ -23,18 +23,18 @@ export class ElementManager {
     
     // Create a new element with the given properties
     createElement(type, x, y, width, height, id = null) {
-        console.log('!!! createElement DEBUG - Parameters:', { type, x, y, width, height, id });
-        console.log('!!! createElement DEBUG - Element type config:', JSON.stringify(this.app.elementTypes[type]));
-        console.log('!!! createElement DEBUG - Caller:', new Error().stack);
+        // createElement parameters: type, x, y, width, height, id
+        // Element type config from app.elementTypes
+        // Element creation initiated
         
         // Generate a unique ID if not provided
         const elementId = id || Date.now().toString();
-        console.log('!!! createElement DEBUG - Using element ID:', elementId);
+        // Using element ID: generated or provided
         
         // Determine if this element is being loaded from DB
         // You can check call stack or pass a flag
         const isLoadingFromDB = new Error().stack.includes('populateEditorWithSVG');
-        console.log('!!! createElement DEBUG - Loading from DB?', isLoadingFromDB);
+        // Check if element is being loaded from database
         
         // Create DOM element
         const element = document.createElement('div');

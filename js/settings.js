@@ -27,7 +27,7 @@ export class SettingsManager {
     }
     
     openSettingsModal() {
-        console.log('openSettingsModal method called');
+        // openSettingsModal method called
         
         // Make sure any previous warning is hidden
         const warningEl = document.getElementById('settings-warning');
@@ -53,7 +53,7 @@ export class SettingsManager {
         
         // Get modal element
         const modalElement = document.getElementById('settings-modal');
-        console.log('Modal element before showing:', modalElement);
+        // Prepare modal element before showing
         
         // Enhanced modal visibility - force visibility with multiple approaches
         if (modalElement) {
@@ -77,7 +77,7 @@ export class SettingsManager {
                 zIndex: modalElement.style.zIndex
             });
         } else {
-            console.error('Settings modal element not found!');
+            // Settings modal element not found
         }
     }
     

@@ -1,6 +1,6 @@
 # SVG Shape Editor
 
-A visual editor for creating rectangular elements that can be exported to SVG format.
+A visual editor for creating and editing floor plans with rectangular elements that can be stored in a Supabase database and exported to SVG format. The application is hosted at [https://elbuenmitch.github.io/new-digi-map/](https://elbuenmitch.github.io/new-digi-map/).
 
 ## Features
 
@@ -18,6 +18,10 @@ A visual editor for creating rectangular elements that can be exported to SVG fo
 - **Multi-Element Drag and Drop**: Select multiple elements and drag them as a group
 - **Overlap Prevention**: Elements cannot overlap, with automatic notifications when conflicts occur
 - **Mouse Wheel Zoom**: Zoom in/out using the mouse wheel directly on the canvas
+- **Database Integration**: Save and load floor plans from Supabase database
+- **Metadata Display**: Shows centercode and floor information when a map is loaded
+- **Background Image Support**: Upload background images for tracing or reference
+- **Element Type Management**: Edit properties of element types affecting all instances
 
 ## Main Usage
 
@@ -32,6 +36,10 @@ A visual editor for creating rectangular elements that can be exported to SVG fo
 5. **Find Elements**: Use the search box to locate elements by ID.
 6. **Configure Settings**: Click Settings to change grid size, upload background image, and change element type properties.
 7. **Export**: Click "Export SVG" to download the canvas elements as an SVG file.
+8. **Database Operations**:
+   - Click "Save to DB" to store the current canvas state in the Supabase database
+   - Click "Load from DB" to retrieve a previously saved floor plan
+   - Specify centercode and floor when saving or loading
 
 ## Element Types
 ### Properties
@@ -41,7 +49,7 @@ A visual editor for creating rectangular elements that can be exported to SVG fo
 - Color: this can be selected from the settings menu, under the "elemet type" section, using a color picker.
 - Show_name_flag: true if ID should be displayed or not within the body of the element.
 - Element popup: When clicking an existing element, a small popup comes out next to it displaying position, dimensions, ID and type. The user can modify the ID of the element from this popup menu by pressing the enter key on their keyboard.
-- 
+
 ### Default Element Types
 - Locations: 
     - color: #FFC580
@@ -90,8 +98,13 @@ A visual editor for creating rectangular elements that can be exported to SVG fo
 - The application is optimized to handle thousands of elements
 - Canvas supports panning and zooming for large projects
 - Visual feedback is provided for actions (selection, copy, search results)
-- Element properties are stored in memory and not in the SVG file (yet this will be added)
+- Element properties are stored in both memory and the database
+- Canvas state is persisted using Supabase database integration
+- Metadata display in top-left corner shows centercode and floor information
+- The app is deployed on GitHub Pages from the gh-pages branch
 
 ## Usage
 
-Open `index.html` in your web browser to start using the application.
+The application is accessible online at [https://elbuenmitch.github.io/new-digi-map/](https://elbuenmitch.github.io/new-digi-map/).
+
+For local development, open `index.html` in your web browser.

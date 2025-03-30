@@ -72,33 +72,33 @@ class App {
         // Settings button with enhanced error handling
         document.getElementById('settings-btn').addEventListener('click', () => {
             try {
-                console.log('Settings button clicked with error handling');
+                // Settings button clicked with error handling
                 
                 // Check if settings object exists
                 if (!this.settings) {
-                    console.error('Error: Settings object is undefined');
+                    // Error: Settings object is undefined
                     return;
                 }
                 
                 // Check if the openSettingsModal method exists
                 if (typeof this.settings.openSettingsModal !== 'function') {
-                    console.error('Error: openSettingsModal is not a function');
-                    console.log('settings object:', this.settings);
+                    // Error: openSettingsModal is not a function
+                    // Debugging settings object reference
                     return;
                 }
                 
                 // Log the settings modal element state
                 const modal = document.getElementById('settings-modal');
-                console.log('Settings modal element:', modal);
-                console.log('Settings modal visibility:', modal.classList.contains('hidden') ? 'hidden' : 'visible');
+                // Referencing settings modal element
+                // Check settings modal visibility
                 
                 // Call the method with proper logging
-                console.log('Attempting to open settings modal...');
+                // Attempting to open settings modal
                 this.settings.openSettingsModal();
-                console.log('Settings modal open method called successfully');
+                // Settings modal open method called successfully
             } catch (error) {
-                console.error('Error opening settings modal:', error);
-                alert('There was an error opening the settings. Please check the console for details.');
+                // Error opening settings modal
+                alert('There was an error opening the settings.');
             }
         });
         

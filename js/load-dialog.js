@@ -113,7 +113,7 @@ export class LoadDialog {
             document.getElementById('load-floor-select').disabled = !hasCentercodes;
             document.getElementById('load-svg-from-db-btn').disabled = !hasCentercodes;
         } catch (error) {
-            console.error('Error loading centercodes:', error);
+            // Error loading centercodes
             this.showWarning(`Error loading centercodes: ${error.message}`);
         }
     }
@@ -138,7 +138,7 @@ export class LoadDialog {
             const hasFloors = floors.length > 0;
             document.getElementById('load-svg-from-db-btn').disabled = !hasFloors;
         } catch (error) {
-            console.error('Error loading floors:', error);
+            // Error loading floors
             this.showWarning(`Error loading floors: ${error.message}`);
         }
     }
@@ -183,7 +183,7 @@ export class LoadDialog {
                 this.showWarning(result.message);
             }
         } catch (error) {
-            console.error('Error loading SVG:', error);
+            // Error loading SVG
             this.showWarning(`Error loading SVG: ${error.message}`);
         }
     }

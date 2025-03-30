@@ -214,7 +214,7 @@ export class SaveDialog {
             document.getElementById('add-floor-btn').disabled = !hasCentercodes;
             document.getElementById('save-svg-to-db-btn').disabled = !hasCentercodes;
         } catch (error) {
-            console.error('Error loading centercodes:', error);
+            // Error loading centercodes
             this.showWarning(`Error loading centercodes: ${error.message}`);
         }
     }
@@ -239,7 +239,7 @@ export class SaveDialog {
             const hasFloors = floors.length > 0;
             document.getElementById('save-svg-to-db-btn').disabled = !hasFloors;
         } catch (error) {
-            console.error('Error loading floors:', error);
+            // Error loading floors
             this.showWarning(`Error loading floors: ${error.message}`);
         }
     }
@@ -275,6 +275,8 @@ export class SaveDialog {
                     
                     // Show result message
                     if (result.success) {
+                        // Update the metadata display to show centercode and floor
+                        this.db.updateMetadataDisplay(this.app, centercode, floor);
                         alert(result.message);
                     } else {
                         alert(`Error updating elements: ${result.message}`);
@@ -291,12 +293,14 @@ export class SaveDialog {
             
             // Show success message
             if (result.success) {
+                // Update the metadata display to show centercode and floor
+                this.db.updateMetadataDisplay(this.app, centercode, floor);
                 alert(result.message);
             } else {
                 alert(`Error saving elements: ${result.message}`);
             }
         } catch (error) {
-            console.error('Error saving elements:', error);
+            // Error saving elements
             this.showWarning(`Error saving elements: ${error.message}`);
         }
     }

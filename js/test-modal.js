@@ -18,7 +18,7 @@ const modalManager = {
  * Initialize the modal manager once the DOM is fully loaded
  */
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('[modal-manager] DOM loaded and parsed');
+    // DOM loaded and parsed
     initializeModalManager();
 });
 
@@ -28,11 +28,11 @@ document.addEventListener('DOMContentLoaded', () => {
 function initializeModalManager() {
     // Prevent multiple initializations
     if (modalManager.initialized) {
-        console.log('[modal-manager] Already initialized');
+        // Already initialized
         return;
     }
     
-    console.log('[modal-manager] Initializing modal manager');
+    // Initializing modal manager
     
     // Wait a short time to ensure app and settings are loaded
     setTimeout(() => {
@@ -40,9 +40,9 @@ function initializeModalManager() {
             interceptSettingsMethods();
             replaceSettingsButton();
             modalManager.initialized = true;
-            console.log('[modal-manager] Initialization complete');
+            // Initialization complete
         } else {
-            console.log('[modal-manager] App or settings not available yet, retrying...');
+            // App or settings not available yet, retrying...
             setTimeout(initializeModalManager, 100); // Try again in 100ms
         }
     }, 0);
@@ -64,7 +64,7 @@ function interceptSettingsMethods() {
     settings.closeSettingsModal = enhancedCloseModal;
     settings.saveSettings = enhancedSaveSettings;
     
-    console.log('[modal-manager] Settings methods intercepted');
+    // Settings methods intercepted
 }
 
 /**
@@ -73,7 +73,7 @@ function interceptSettingsMethods() {
 function replaceSettingsButton() {
     const settingsButton = document.getElementById('settings-btn');
     if (!settingsButton) {
-        console.error('[modal-manager] Settings button not found');
+        // Settings button not found
         return;
     }
     
@@ -88,7 +88,7 @@ function replaceSettingsButton() {
         e.preventDefault();
         e.stopPropagation();
         if (window.app && window.app.settings) {
-            console.log('[modal-manager] Settings button clicked, opening modal');
+            // Settings button clicked, opening modal
             window.app.settings.openSettingsModal();
         }
     });
@@ -96,7 +96,7 @@ function replaceSettingsButton() {
     // Replace the button
     if (settingsButton.parentNode) {
         settingsButton.parentNode.replaceChild(newButton, settingsButton);
-        console.log('[modal-manager] Settings button replaced');
+        // Settings button replaced
     }
 }
 
@@ -104,12 +104,12 @@ function replaceSettingsButton() {
  * Enhanced version of the openSettingsModal method
  */
 function enhancedOpenModal() {
-    console.log('[modal-manager] Enhanced open modal called');
+    // Enhanced open modal called
     
     // Get the original modal
     const modal = document.getElementById('settings-modal');
     if (!modal) {
-        console.error('[modal-manager] Settings modal not found');
+        // Settings modal not found
         return;
     }
     
@@ -131,7 +131,7 @@ function enhancedOpenModal() {
     // Set up save handler
     setupSaveHandler(modal);
     
-    console.log('[modal-manager] Modal opened and configured');
+    // Modal opened and configured
 }
 
 /**
@@ -182,7 +182,7 @@ function fillSettingsForm(modal) {
         }
     }
     
-    console.log('[modal-manager] Settings form populated');
+    // Settings form populated
 }
 
 /**
@@ -196,7 +196,7 @@ function showModal(modal) {
     modal.style.opacity = '1';
     modal.style.zIndex = '1000';
     
-    console.log('[modal-manager] Modal is now visible');
+    // Modal is now visible
 }
 
 /**
@@ -209,7 +209,7 @@ function setupModalCloseHandlers(modal) {
             // Check if click is outside the modal content
             const modalContent = modal.querySelector('.modal-content');
             if (modalContent && !modalContent.contains(e.target) && !e.target.closest('.modal-content')) {
-                console.log('[modal-manager] Click detected outside modal content');
+                // Click detected outside modal content
                 enhancedCloseModal();
                 // Remove this specific handler to avoid memory leaks
                 document.removeEventListener('click', outsideClickHandler);
@@ -226,7 +226,7 @@ function setupModalCloseHandlers(modal) {
         
         // Add our listener
         newCloseBtn.addEventListener('click', function(e) {
-            console.log('[modal-manager] Close button clicked');
+            // Close button clicked
             e.preventDefault();
             e.stopPropagation();
             enhancedCloseModal();
@@ -246,13 +246,13 @@ function setupSaveHandler(modal) {
         
         // Add our listener
         newSaveBtn.addEventListener('click', function(e) {
-            console.log('[modal-manager] Save settings button clicked');
+            // Save settings button clicked
             e.preventDefault();
             e.stopPropagation();
             processSaveSettings(modal);
         });
     } else {
-        console.error('[modal-manager] Save button not found in modal');
+        // Save button not found in modal
     }
 }
 
@@ -260,12 +260,12 @@ function setupSaveHandler(modal) {
  * Enhanced version of the closeSettingsModal method
  */
 function enhancedCloseModal() {
-    console.log('[modal-manager] Enhanced close modal called');
+    // Enhanced close modal called
     
     // Get the modal
     const modal = document.getElementById('settings-modal');
     if (!modal) {
-        console.error('[modal-manager] Settings modal not found for closing');
+        // Settings modal not found for closing
         return;
     }
     
@@ -280,7 +280,7 @@ function enhancedCloseModal() {
         warningEl.style.display = 'none';
     }
     
-    console.log('[modal-manager] Modal closed');
+    // Modal closed
 }
 
 /**
@@ -299,10 +299,11 @@ function processSaveSettings(modal) {
     const barrierColor = modal.querySelector('#barrier-color').value;
     const barrierShowName = modal.querySelector('#barrier-show-name').checked;
     
-    console.log('[modal-manager] Form values:', { 
+    // Form values processing
+    const formData = {
         canvasWidth, canvasHeight, gridVisible, zoomStepSize,
         locationColor, locationShowName, barrierColor, barrierShowName
-    });
+    };
     
     // Check if there are elements on the canvas when trying to resize
     if (window.app && window.app.elements && window.app.elements.length > 0) {
@@ -313,7 +314,7 @@ function processSaveSettings(modal) {
         );
         
         if (canvasSizeChanged) {
-            console.log('[modal-manager] Cannot resize canvas with elements present');
+            // Cannot resize canvas with elements present
             
             // Show warning message
             const warningEl = modal.querySelector('#settings-warning');
@@ -349,7 +350,7 @@ function processSaveSettings(modal) {
  * Enhanced version of the saveSettings method
  */
 function enhancedSaveSettings(formValues) {
-    console.log('[modal-manager] Enhanced save settings called');
+    // Enhanced save settings called
     
     // Update the settings object with new values
     const settings = window.app.settings;
@@ -379,7 +380,7 @@ function enhancedSaveSettings(formValues) {
     const gridContainer = document.querySelector('.grid-container');
     if (gridContainer) {
         gridContainer.style.display = settings.gridVisible ? 'block' : 'none';
-        console.log('[modal-manager] Updated grid visibility to', settings.gridVisible ? 'visible' : 'hidden');
+        // Updated grid visibility
     }
     
     // Apply canvas dimensions
@@ -388,23 +389,24 @@ function enhancedSaveSettings(formValues) {
         const cellSize = settings.cellSize || 20;
         canvasEl.style.width = (settings.canvasWidth * cellSize) + 'px';
         canvasEl.style.height = (settings.canvasHeight * cellSize) + 'px';
-        console.log('[modal-manager] Applied canvas dimensions:', {
+        // Applied canvas dimensions
+        const dimensions = {
             width: canvasEl.style.width,
             height: canvasEl.style.height
-        });
+        };
     }
     
     // Redraw grid
     if (window.app.canvas && typeof window.app.canvas.drawGrid === 'function') {
         window.app.canvas.drawGrid();
-        console.log('[modal-manager] Redrew grid with new dimensions');
+        // Redrew grid with new dimensions
     }
     
     // Update existing elements
     if (typeof settings.updateExistingElements === 'function') {
         settings.updateExistingElements();
-        console.log('[modal-manager] Updated existing elements');
+        // Updated existing elements
     }
     
-    console.log('[modal-manager] Settings saved successfully');
+    // Settings saved successfully
 }
