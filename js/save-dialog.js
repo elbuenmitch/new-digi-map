@@ -83,7 +83,7 @@ export class SaveDialog {
                         await this.db.createCentercode(newCentercode);
                         await this.loadCentercodes();
                         document.getElementById('centercode-select').value = newCentercode;
-                        await this.loadFloors(newCentercode);
+                        document.getElementById('floor-select').innerHTML = ''; // Clear floors since a new centercode won't have any floors yet
                         this.showAddCentercodeForm(false);
                     } catch (error) {
                         this.showWarning(`Error creating centercode: ${error.message}`);
@@ -111,18 +111,12 @@ export class SaveDialog {
                 
                 if (newFloor && centercode) {
                     try {
-                        // Get centercode ID
-                        const centercodes = await this.db.getCentercodes();
-                        const centercodeObj = centercodes.find(c => c.centercode === centercode);
-                        
-                        if (centercodeObj) {
-                            await this.db.createFloor(centercodeObj.id, newFloor);
-                            await this.loadFloors(centercode);
-                            document.getElementById('floor-select').value = newFloor;
-                            this.showAddFloorForm(false);
-                        } else {
-                            this.showWarning('Selected centercode not found');
-                        }
+                        // Pass the centercode to associate the floor with it
+                        await this.db.createFloor(newFloor, centercode);
+                        // Reload the floors for this centercode
+                        await this.loadFloors(centercode);
+                        document.getElementById('floor-select').value = newFloor;
+                        this.showAddFloorForm(false);
                     } catch (error) {
                         this.showWarning(`Error creating floor: ${error.message}`);
                     }
@@ -236,9 +230,8 @@ export class SaveDialog {
             // Add options for each floor
             floors.forEach(f => {
                 const option = document.createElement('option');
-                option.value = f.picking_floor;
-                option.textContent = f.picking_floor;
-                option.dataset.id = f.id;
+                option.value = f.floor;
+                option.textContent = f.floor;
                 select.appendChild(option);
             });
             
@@ -266,30 +259,16 @@ export class SaveDialog {
         }
         
         try {
-            // Get centercode and floor info
-            const centercodes = await this.db.getCentercodes();
-            const centercodeObj = centercodes.find(c => c.centercode === centercodeSelect.value);
+            const centercode = centercodeSelect.value;
+            const floor = floorSelect.value;
             
-            if (!centercodeObj) {
-                this.showWarning('Selected centercode not found');
-                return;
-            }
-            
-            const floors = await this.db.getFloors(centercodeSelect.value);
-            const floorObj = floors.find(f => f.picking_floor === floorSelect.value);
-            
-            if (!floorObj) {
-                this.showWarning('Selected floor not found');
-                return;
-            }
-            
-            // Check if an SVG already exists for this centercode/floor
-            const exists = await this.db.checkSVGExists(centercodeObj.id, floorObj.id);
+            // Check if elements already exist for this centercode/floor
+            const exists = await this.db.elementsExist(centercode, floor);
             if (exists) {
-                // Ask user if they want to update the existing SVG
-                if (confirm('An SVG already exists for this centercode/floor combination. Do you want to update it?')) {
-                    // Update the SVG elements in the database
-                    const result = await this.db.updateSVGElements(this.app, this.app.elements, centercodeSelect.value, floorSelect.value);
+                // Ask user if they want to update the existing elements
+                if (confirm('Elements already exist for this centercode/floor combination. Do you want to overwrite them?')) {
+                    // Update the elements in the database
+                    const result = await this.db.saveElements(this.app.elements, centercode, floor);
                     
                     // Close the dialog
                     this.closeDialog();
@@ -298,23 +277,27 @@ export class SaveDialog {
                     if (result.success) {
                         alert(result.message);
                     } else {
-                        alert(`Error updating SVG: ${result.message}`);
+                        alert(`Error updating elements: ${result.message}`);
                     }
                 }
                 return;
             }
             
             // Save elements to database as new entry
-            await this.db.saveElements(this.app.elements, centercodeObj.id, floorObj.id);
+            const result = await this.db.saveElements(this.app.elements, centercode, floor);
             
             // Close the dialog
             this.closeDialog();
             
             // Show success message
-            alert('SVG saved successfully');
+            if (result.success) {
+                alert(result.message);
+            } else {
+                alert(`Error saving elements: ${result.message}`);
+            }
         } catch (error) {
-            console.error('Error saving SVG:', error);
-            this.showWarning(`Error saving SVG: ${error.message}`);
+            console.error('Error saving elements:', error);
+            this.showWarning(`Error saving elements: ${error.message}`);
         }
     }
 }

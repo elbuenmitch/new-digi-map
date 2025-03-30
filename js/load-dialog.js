@@ -104,7 +104,7 @@ export class LoadDialog {
                 const option = document.createElement('option');
                 option.value = c.centercode;
                 option.textContent = c.centercode;
-                option.dataset.id = c.id;
+                // No longer need to store ID since we use centercode directly
                 select.appendChild(option);
             });
             
@@ -129,9 +129,8 @@ export class LoadDialog {
             // Add options for each floor
             floors.forEach(f => {
                 const option = document.createElement('option');
-                option.value = f.picking_floor;
-                option.textContent = f.picking_floor;
-                option.dataset.id = f.id;
+                option.value = f.floor;
+                option.textContent = f.floor;
                 select.appendChild(option);
             });
             

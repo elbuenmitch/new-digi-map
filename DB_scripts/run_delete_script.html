@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Delete All Elements</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 20px;
+            line-height: 1.6;
+        }
+        #output {
+            background-color: #f5f5f5;
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            margin-top: 20px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        h1 {
+            color: #333;
+        }
+        .warning {
+            color: #c00;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>Delete All Elements Script</h1>
+    <p class="warning">Warning: This script will delete ALL records from the elements table in the database.</p>
+    <button id="executeBtn">Execute Deletion</button>
+    <div id="output">Output will appear here...</div>
+
+    <script type="module">
+        // Redirect console.log and console.error to our output div
+        const output = document.getElementById('output');
+        const originalConsoleLog = console.log;
+        const originalConsoleError = console.error;
+        
+        console.log = function(...args) {
+            output.innerHTML += args.join(' ') + '\n';
+            originalConsoleLog.apply(console, args);
+        };
+        
+        console.error = function(...args) {
+            output.innerHTML += '<span style="color: red;">' + args.join(' ') + '</span>\n';
+            originalConsoleError.apply(console, args);
+        };
+        
+        // Import the Supabase client
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+        // Initialize Supabase client with the same credentials as the main app
+        const supabase = createClient(
+            'https://nxribktnysqkqwfyapzy.supabase.co',
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im54cmlia3RueXNxa3F3ZnlhcHp5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDMyOTExNzksImV4cCI6MjA1ODg2NzE3OX0.8zRGdwGuw2LVqfilgWD2so1MVAEo_iKUqQlf9it1wLY'
+        );
+
+        /**
+         * Delete all records from the elements table
+         * @returns {Promise<Object>} Result object with success, count, and message properties
+         */
+        async function deleteAllElements() {
+            try {
+                console.log('Starting deletion of all elements...');
+                
+                // First, get a count of all elements to confirm how many will be deleted
+                const { count, error: countError } = await supabase
+                    .from('elements')
+                    .select('*', { count: 'exact', head: true });
+                
+                if (countError) {
+                    console.error('Error counting elements:', countError);
+                    return {
+                        success: false,
+                        message: `Error counting elements: ${countError.message}`
+                    };
+                }
+                
+                console.log(`Found ${count} elements to delete.`);
+                
+                // Delete all elements
+                const { error: deleteError } = await supabase
+                    .from('elements')
+                    .delete()
+                    .neq('id', 0); // This condition will match all records since id is never 0
+                
+                if (deleteError) {
+                    console.error('Error deleting elements:', deleteError);
+                    return {
+                        success: false,
+                        message: `Error deleting elements: ${deleteError.message}`
+                    };
+                }
+                
+                console.log(`Successfully deleted all ${count} elements.`);
+                return {
+                    success: true,
+                    count: count,
+                    message: `Successfully deleted all ${count} elements from the database.`
+                };
+            } catch (error) {
+                console.error('Unexpected error deleting elements:', error);
+                return {
+                    success: false,
+                    message: error.message || 'Unknown error occurred while deleting elements'
+                };
+            }
+        }
+
+        // Add event listener to the button
+        document.getElementById('executeBtn').addEventListener('click', async () => {
+            try {
+                output.innerHTML = 'Executing deletion script...\n';
+                const result = await deleteAllElements();
+                console.log(result);
+                if (result.success) {
+                    console.log('✅ Operation completed successfully');
+                } else {
+                    console.log('❌ Operation failed');
+                }
+            } catch (error) {
+                console.error('Fatal error:', error);
+            }
+        });
+    </script>
+</body>
+</html>
