@@ -85,6 +85,51 @@ export class CanvasManager {
         this.canvas.style.transform = `translate(${this.offset.x}px, ${this.offset.y}px) scale(${this.scale})`;
     }
     
+    /**
+     * Clear all elements from the canvas
+     */
+    clearElements() {
+        // Remove all element DOM objects from the canvas
+        const elementDOMs = document.querySelectorAll('.canvas-element');
+        elementDOMs.forEach(el => el.remove());
+        
+        // Clear selected elements in the element manager
+        if (this.elementManager) {
+            this.elementManager.selectedElements = [];
+        }
+        
+        // Hide any open popups
+        this.hideElementPopup();
+        
+        // Reset app element type counters
+        for (const type in this.app.elementTypes) {
+            if (Object.prototype.hasOwnProperty.call(this.app.elementTypes, type)) {
+                this.app.elementTypes[type].nextId = 1;
+            }
+        }
+        
+        console.log('All elements cleared from canvas');
+    }
+    
+    /**
+     * Reset the canvas viewport to default settings
+     */
+    resetViewport() {
+        // Reset zoom level
+        this.scale = 1;
+        
+        // Update canvas dimensions based on settings
+        this.updateCanvasDimensions();
+        
+        // Re-center the canvas
+        this.centerCanvas();
+        
+        // Redraw the grid with updated settings
+        this.gridManager.drawGrid();
+        
+        console.log('Canvas viewport reset to default');
+    }
+    
     // Delegate grid drawing to grid manager
     drawGrid() {
         // Update canvas dimensions first (in case canvas size changed)
