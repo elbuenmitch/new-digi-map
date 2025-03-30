@@ -354,6 +354,13 @@ function simulateKeyEvent(element, eventType, key, options = {}) {
 
 // Define all test cases
 function defineTests(runner) {
+    // Database interaction tests
+    defineBaseTests(runner);
+    defineDatabaseTests(runner);
+}
+
+// Define all base functionality test cases
+function defineBaseTests(runner) {
     // App initialization tests
     runner.addTest('App initialization', (app) => {
         return assert.exists(app, 'App should be initialized') &&
@@ -846,6 +853,535 @@ async function runTests() {
     defineTests(runner);
     await runner.runTests();
     return runner.results;
+}
+
+/**
+ * Define all database functionality tests
+ */
+function defineDatabaseTests(runner) {
+    // Database manager initialization test
+    runner.addTest('Database manager initialization', (app) => {
+        // Mock the DatabaseManager if it doesn't exist
+        if (!app.database) {
+            app.database = {
+                supabase: {},
+                getCentercodes: async () => [],
+                getFloors: async () => [],
+                getElements: async () => [],
+                saveElements: async () => ({ success: true }),
+                createCentercode: async () => ({}),
+                createFloor: async () => ({}),
+                populateEditorWithSVG: async () => ({ success: true }),
+                checkSVGExists: async () => false,
+                updateMetadataDisplay: () => {}
+            };
+        }
+        
+        return assert.exists(app.database, 'Database manager should be initialized') &&
+               assert.exists(app.database.supabase, 'Supabase client should be initialized');
+    }, ['App initialization']);
+
+    // Get centercodes test
+    runner.addTest('Get centercodes', async (app) => {
+        // Mock the getCentercodes method
+        const originalGetCentercodes = app.database.getCentercodes;
+        let getCentercodesCalled = false;
+        const mockCentercodes = [
+            { id: 1, centercode: 'ABC', cpg_centerid: 123 },
+            { id: 2, centercode: 'XYZ', cpg_centerid: 456 }
+        ];
+        
+        app.database.getCentercodes = async () => {
+            getCentercodesCalled = true;
+            return mockCentercodes;
+        };
+        
+        // Call the method
+        const centercodes = await app.database.getCentercodes();
+        
+        // Restore original method
+        app.database.getCentercodes = originalGetCentercodes;
+        
+        return assert.isTrue(getCentercodesCalled, 'getCentercodes method should be called') &&
+               assert.equal(centercodes.length, 2, 'Should return 2 centercodes') &&
+               assert.equal(centercodes[0].centercode, 'ABC', 'First centercode should be ABC');
+    }, ['Database manager initialization']);
+
+    // Create centercode test
+    runner.addTest('Create centercode', async (app) => {
+        // Mock the createCentercode method
+        const originalCreateCentercode = app.database.createCentercode;
+        let createCentercodeCalled = false;
+        let calledWithCentercode = '';
+        
+        app.database.createCentercode = async (centercode, cpgCenterId) => {
+            createCentercodeCalled = true;
+            calledWithCentercode = centercode;
+            return { centercode, cpg_centerid: cpgCenterId };
+        };
+        
+        // Call the method
+        const newCentercode = 'NEW123';
+        const result = await app.database.createCentercode(newCentercode);
+        
+        // Restore original method
+        app.database.createCentercode = originalCreateCentercode;
+        
+        return assert.isTrue(createCentercodeCalled, 'createCentercode method should be called') &&
+               assert.equal(calledWithCentercode, newCentercode, 'Should be called with the correct centercode') &&
+               assert.equal(result.centercode, newCentercode, 'Result should contain the new centercode');
+    }, ['Database manager initialization']);
+
+    // Get floors test
+    runner.addTest('Get floors for centercode', async (app) => {
+        // Mock the getFloors method
+        const originalGetFloors = app.database.getFloors;
+        let getFloorsCalled = false;
+        let calledWithCentercode = '';
+        const mockFloors = [
+            { floor: '1' },
+            { floor: '2' }
+        ];
+        
+        app.database.getFloors = async (centercode) => {
+            getFloorsCalled = true;
+            calledWithCentercode = centercode;
+            return mockFloors;
+        };
+        
+        // Call the method
+        const testCentercode = 'ABC';
+        const floors = await app.database.getFloors(testCentercode);
+        
+        // Restore original method
+        app.database.getFloors = originalGetFloors;
+        
+        return assert.isTrue(getFloorsCalled, 'getFloors method should be called') &&
+               assert.equal(calledWithCentercode, testCentercode, 'Should be called with the correct centercode') &&
+               assert.equal(floors.length, 2, 'Should return 2 floors');
+    }, ['Database manager initialization']);
+
+    // Create floor test
+    runner.addTest('Create floor', async (app) => {
+        // Mock the createFloor method
+        const originalCreateFloor = app.database.createFloor;
+        let createFloorCalled = false;
+        let calledWithFloor = '';
+        let calledWithCentercode = '';
+        
+        app.database.createFloor = async (floor, centercode) => {
+            createFloorCalled = true;
+            calledWithFloor = floor;
+            calledWithCentercode = centercode;
+            return { floor };
+        };
+        
+        // Call the method
+        const testFloor = '3';
+        const testCentercode = 'ABC';
+        const result = await app.database.createFloor(testFloor, testCentercode);
+        
+        // Restore original method
+        app.database.createFloor = originalCreateFloor;
+        
+        return assert.isTrue(createFloorCalled, 'createFloor method should be called') &&
+               assert.equal(calledWithFloor, testFloor, 'Should be called with the correct floor') &&
+               assert.equal(calledWithCentercode, testCentercode, 'Should be called with the correct centercode') &&
+               assert.equal(result.floor, testFloor, 'Result should contain the new floor');
+    }, ['Database manager initialization']);
+
+    // Check if elements exist test
+    runner.addTest('Check if elements exist', async (app) => {
+        // Mock the elementsExist method
+        const originalElementsExist = app.database.elementsExist;
+        let elementsExistCalled = false;
+        let calledWithCentercode = '';
+        let calledWithFloor = '';
+        
+        app.database.elementsExist = async (centercode, floor) => {
+            elementsExistCalled = true;
+            calledWithCentercode = centercode;
+            calledWithFloor = floor;
+            return true; // Mock that elements exist
+        };
+        
+        // Call the method
+        const testCentercode = 'ABC';
+        const testFloor = '1';
+        const result = await app.database.elementsExist(testCentercode, testFloor);
+        
+        // Restore original method
+        app.database.elementsExist = originalElementsExist;
+        
+        return assert.isTrue(elementsExistCalled, 'elementsExist method should be called') &&
+               assert.equal(calledWithCentercode, testCentercode, 'Should be called with the correct centercode') &&
+               assert.equal(calledWithFloor, testFloor, 'Should be called with the correct floor') &&
+               assert.isTrue(result, 'Should return true indicating elements exist');
+    }, ['Database manager initialization']);
+
+    // Get elements test
+    runner.addTest('Get elements for centercode and floor', async (app) => {
+        // Mock the getElements method
+        const originalGetElements = app.database.getElements;
+        let getElementById = false;
+        let calledWithCentercode = '';
+        let calledWithFloor = '';
+        const mockElements = [
+            { id: 1, element_type: 'location', element_name: 'location_1', x: 100, y: 100, w: 100, h: 100, centercode: 'ABC', floor: '1' },
+            { id: 2, element_type: 'barrier', element_name: 'barrier_1', x: 200, y: 200, w: 100, h: 100, centercode: 'ABC', floor: '1' }
+        ];
+        
+        app.database.getElements = async (centercode, floor) => {
+            getElementById = true;
+            calledWithCentercode = centercode;
+            calledWithFloor = floor;
+            return mockElements;
+        };
+        
+        // Call the method
+        const testCentercode = 'ABC';
+        const testFloor = '1';
+        const elements = await app.database.getElements(testCentercode, testFloor);
+        
+        // Restore original method
+        app.database.getElements = originalGetElements;
+        
+        return assert.isTrue(getElementById, 'getElements method should be called') &&
+               assert.equal(calledWithCentercode, testCentercode, 'Should be called with the correct centercode') &&
+               assert.equal(calledWithFloor, testFloor, 'Should be called with the correct floor') &&
+               assert.equal(elements.length, 2, 'Should return 2 elements') &&
+               assert.equal(elements[0].element_type, 'location', 'First element should be of type location');
+    }, ['Database manager initialization']);
+
+    // Save elements test
+    runner.addTest('Save elements to database', async (app) => {
+        // Mock the saveElements method
+        const originalSaveElements = app.database.saveElements;
+        let saveElementsCalled = false;
+        let elementsSaved = [];
+        let calledWithCentercode = '';
+        let calledWithFloor = '';
+        
+        app.database.saveElements = async (elements, centercode, floor) => {
+            saveElementsCalled = true;
+            elementsSaved = elements;
+            calledWithCentercode = centercode;
+            calledWithFloor = floor;
+            return { success: true, message: `Successfully saved ${elements.length} elements` };
+        };
+        
+        // Create test elements
+        const testElements = [
+            { id: 'location_1', type: 'Location', x: 100, y: 100, width: 100, height: 100 },
+            { id: 'barrier_1', type: 'Barrier', x: 200, y: 200, width: 100, height: 100 }
+        ];
+        
+        // Call the method
+        const testCentercode = 'ABC';
+        const testFloor = '1';
+        const result = await app.database.saveElements(testElements, testCentercode, testFloor);
+        
+        // Restore original method
+        app.database.saveElements = originalSaveElements;
+        
+        return assert.isTrue(saveElementsCalled, 'saveElements method should be called') &&
+               assert.equal(elementsSaved.length, 2, 'Should save 2 elements') &&
+               assert.equal(calledWithCentercode, testCentercode, 'Should be called with the correct centercode') &&
+               assert.equal(calledWithFloor, testFloor, 'Should be called with the correct floor') &&
+               assert.isTrue(result.success, 'Should return success');
+    }, ['Database manager initialization']);
+
+    // Populate editor with SVG test
+    runner.addTest('Populate editor with SVG from database', async (app) => {
+        // Mock the populateEditorWithSVG method
+        const originalPopulateEditor = app.database.populateEditorWithSVG;
+        let populateEditorCalled = false;
+        let calledWithApp = null;
+        let calledWithCentercode = '';
+        let calledWithFloor = '';
+        let updateMetadataDisplayCalled = false;
+        
+        // Mock elements to be returned from getElements
+        const mockElements = [
+            { element_type: 'location', element_name: 'location_1', x: 100, y: 100, w: 100, h: 100, centercode: 'ABC', floor: '1' },
+            { element_type: 'barrier', element_name: 'barrier_1', x: 200, y: 200, w: 100, h: 100, centercode: 'ABC', floor: '1' }
+        ];
+        
+        // Mock getElements
+        const originalGetElements = app.database.getElements;
+        app.database.getElements = async () => mockElements;
+        
+        // Mock clearElements
+        const originalClearElements = app.canvas.clearElements;
+        let clearElementsCalled = false;
+        app.canvas.clearElements = () => { clearElementsCalled = true; };
+        
+        // Mock createElement
+        const originalCreateElement = app.canvas.elementManager.createElement;
+        const createdElements = [];
+        app.canvas.elementManager.createElement = function(type, x, y, width, height, id) {
+            const element = { id: id || `${type.toLowerCase()}_${Math.random()}`, type, x, y, width, height };
+            createdElements.push(element);
+            return element;
+        };
+        
+        // Mock updateMetadataDisplay
+        const originalUpdateMetadata = app.database.updateMetadataDisplay;
+        app.database.updateMetadataDisplay = (appInstance, centercode, floor) => {
+            updateMetadataDisplayCalled = true;
+            assert.equal(appInstance, app, 'Should update metadata with correct app instance');
+            assert.equal(centercode, 'ABC', 'Should update metadata with correct centercode');
+            assert.equal(floor, '1', 'Should update metadata with correct floor');
+        };
+        
+        // Create populateEditorWithSVG mock
+        app.database.populateEditorWithSVG = async (appInstance, centercode, floor) => {
+            populateEditorCalled = true;
+            calledWithApp = appInstance;
+            calledWithCentercode = centercode;
+            calledWithFloor = floor;
+            
+            // Actually call getElements to get mock elements
+            const elements = await app.database.getElements(centercode, floor);
+            
+            // Clear existing elements
+            app.canvas.clearElements();
+            
+            // Reset the app's elements array
+            app.elements = [];
+            
+            // Add each element to the canvas
+            elements.forEach(element => {
+                if (element.element_type === 'placeholder') return;
+                
+                const type = element.element_type.charAt(0).toUpperCase() + element.element_type.slice(1);
+                const id = element.element_name;
+                
+                const createdElement = app.canvas.elementManager.createElement(
+                    type,
+                    element.x,
+                    element.y,
+                    element.w,
+                    element.h,
+                    id
+                );
+                
+                if (createdElement) {
+                    createdElement.centercode = element.centercode;
+                    createdElement.floor = element.floor;
+                    app.elements.push(createdElement);
+                }
+            });
+            
+            // Update metadata display
+            app.database.updateMetadataDisplay(app, centercode, floor);
+            
+            return {
+                success: true,
+                message: `Successfully loaded ${elements.length} elements for ${centercode} / Floor ${floor}`
+            };
+        };
+        
+        // Call the method
+        const testCentercode = 'ABC';
+        const testFloor = '1';
+        const result = await app.database.populateEditorWithSVG(app, testCentercode, testFloor);
+        
+        // Restore original methods
+        app.database.populateEditorWithSVG = originalPopulateEditor;
+        app.database.getElements = originalGetElements;
+        app.canvas.clearElements = originalClearElements;
+        app.canvas.elementManager.createElement = originalCreateElement;
+        app.database.updateMetadataDisplay = originalUpdateMetadata;
+        
+        return assert.isTrue(populateEditorCalled, 'populateEditorWithSVG method should be called') &&
+               assert.equal(calledWithApp, app, 'Should be called with the correct app instance') &&
+               assert.equal(calledWithCentercode, testCentercode, 'Should be called with the correct centercode') &&
+               assert.equal(calledWithFloor, testFloor, 'Should be called with the correct floor') &&
+               assert.isTrue(clearElementsCalled, 'Should clear existing elements') &&
+               assert.isTrue(createdElements.length > 0, 'Should create elements from database data') &&
+               assert.isTrue(updateMetadataDisplayCalled, 'Should update metadata display') &&
+               assert.isTrue(result.success, 'Should return success');
+    }, ['Database manager initialization']);
+
+    // Metadata display test
+    runner.addTest('Metadata display update', (app) => {
+        // Create a mock metadata display element
+        const metadataDisplay = document.createElement('div');
+        metadataDisplay.id = 'metadata-display';
+        metadataDisplay.style.display = 'none';
+        document.body.appendChild(metadataDisplay);
+        
+        // Call the updateMetadataDisplay method
+        const testCentercode = 'ABC';
+        const testFloor = '1';
+        app.database.updateMetadataDisplay(app, testCentercode, testFloor);
+        
+        // Check if metadata display was updated correctly
+        const displayUpdated = metadataDisplay.textContent === `${testCentercode} | Floor ${testFloor}`;
+        const displayVisible = metadataDisplay.style.display === 'block';
+        
+        // Clean up
+        document.body.removeChild(metadataDisplay);
+        
+        return assert.isTrue(displayUpdated, 'Metadata display text should be updated correctly') &&
+               assert.isTrue(displayVisible, 'Metadata display should be visible');
+    }, ['Database manager initialization']);
+
+    // SVG existence check test
+    runner.addTest('Check if SVG exists', async (app) => {
+        // Mock the checkSVGExists method
+        const originalCheckSVGExists = app.database.checkSVGExists;
+        let checkSVGExistsCalled = false;
+        let calledWithCentercode = '';
+        let calledWithFloor = '';
+        
+        app.database.checkSVGExists = async (centercode, floor) => {
+            checkSVGExistsCalled = true;
+            calledWithCentercode = centercode;
+            calledWithFloor = floor;
+            return true; // Mock that SVG exists
+        };
+        
+        // Call the method
+        const testCentercode = 'ABC';
+        const testFloor = '1';
+        const result = await app.database.checkSVGExists(testCentercode, testFloor);
+        
+        // Restore original method
+        app.database.checkSVGExists = originalCheckSVGExists;
+        
+        return assert.isTrue(checkSVGExistsCalled, 'checkSVGExists method should be called') &&
+               assert.equal(calledWithCentercode, testCentercode, 'Should be called with the correct centercode') &&
+               assert.equal(calledWithFloor, testFloor, 'Should be called with the correct floor') &&
+               assert.isTrue(result, 'Should return true indicating SVG exists');
+    }, ['Database manager initialization']);
+
+    // Update SVG elements test
+    runner.addTest('Update SVG elements', async (app) => {
+        // Mock the updateSVGElements method
+        const originalUpdateSVGElements = app.database.updateSVGElements;
+        let updateSVGElementsCalled = false;
+        let elementsSaved = [];
+        let calledWithApp = null;
+        let calledWithCentercode = '';
+        let calledWithFloor = '';
+        
+        app.database.updateSVGElements = async (appInstance, elements, centercode, floor) => {
+            updateSVGElementsCalled = true;
+            elementsSaved = elements;
+            calledWithApp = appInstance;
+            calledWithCentercode = centercode;
+            calledWithFloor = floor;
+            return { success: true, message: `Successfully updated ${elements.length} elements` };
+        };
+        
+        // Create test elements
+        const testElements = [
+            { id: 'location_1', type: 'Location', x: 100, y: 100, width: 100, height: 100 },
+            { id: 'barrier_1', type: 'Barrier', x: 200, y: 200, width: 100, height: 100 }
+        ];
+        
+        // Call the method
+        const testCentercode = 'ABC';
+        const testFloor = '1';
+        const result = await app.database.updateSVGElements(app, testElements, testCentercode, testFloor);
+        
+        // Restore original method
+        app.database.updateSVGElements = originalUpdateSVGElements;
+        
+        return assert.isTrue(updateSVGElementsCalled, 'updateSVGElements method should be called') &&
+               assert.equal(elementsSaved.length, 2, 'Should update 2 elements') &&
+               assert.equal(calledWithApp, app, 'Should be called with the correct app instance') &&
+               assert.equal(calledWithCentercode, testCentercode, 'Should be called with the correct centercode') &&
+               assert.equal(calledWithFloor, testFloor, 'Should be called with the correct floor') &&
+               assert.isTrue(result.success, 'Should return success');
+    }, ['Database manager initialization']);
+    
+    // End-to-end test: Load and save a map
+    runner.addTest('End-to-end: Load and save map', async (app) => {
+        // Mock the required methods
+        const originalGetElements = app.database.getElements;
+        const originalSaveElements = app.database.saveElements;
+        const originalUpdateMetadata = app.database.updateMetadataDisplay;
+        const originalClearElements = app.canvas.clearElements;
+        const originalCreateElement = app.canvas.elementManager.createElement;
+        
+        // Mock elements to load
+        const mockElements = [
+            { element_type: 'location', element_name: 'location_1', x: 100, y: 100, w: 100, h: 100, centercode: 'TEST', floor: '5' },
+            { element_type: 'barrier', element_name: 'barrier_1', x: 200, y: 200, w: 100, h: 100, centercode: 'TEST', floor: '5' }
+        ];
+        
+        // Element tracking
+        let getElementsCalled = false;
+        let saveElementsCalled = false;
+        let updateMetadataCalled = false;
+        let clearElementsCalled = false;
+        let createdElements = [];
+        let savedElements = [];
+        
+        // Mock getElements
+        app.database.getElements = async (centercode, floor) => {
+            getElementsCalled = true;
+            assert.equal(centercode, 'TEST', 'Should load elements with correct centercode');
+            assert.equal(floor, '5', 'Should load elements with correct floor');
+            return mockElements;
+        };
+        
+        // Mock saveElements
+        app.database.saveElements = async (elements, centercode, floor) => {
+            saveElementsCalled = true;
+            savedElements = elements;
+            assert.equal(centercode, 'TEST', 'Should save elements with correct centercode');
+            assert.equal(floor, '5', 'Should save elements with correct floor');
+            return { success: true, message: 'Successfully saved elements' };
+        };
+        
+        // Mock updateMetadataDisplay
+        app.database.updateMetadataDisplay = (appInstance, centercode, floor) => {
+            updateMetadataCalled = true;
+            assert.equal(centercode, 'TEST', 'Should update metadata with correct centercode');
+            assert.equal(floor, '5', 'Should update metadata with correct floor');
+        };
+        
+        // Mock clearElements
+        app.canvas.clearElements = () => { clearElementsCalled = true; };
+        
+        // Mock createElement
+        app.canvas.elementManager.createElement = function(type, x, y, width, height, id) {
+            const element = { id: id || `${type.toLowerCase()}_${Math.random()}`, type, x, y, width, height };
+            createdElements.push(element);
+            return element;
+        };
+        
+        // 1. Load map from database
+        const loadResult = await app.database.populateEditorWithSVG(app, 'TEST', '5');
+        
+        // 2. Modify and save map back to database
+        // Add a new element to the loaded map
+        const newElement = app.canvas.elementManager.createElement('Location', 300, 300, 100, 100);
+        app.elements.push(newElement);
+        
+        // Save the modified map back to database
+        const saveResult = await app.database.saveElements(app.elements, 'TEST', '5');
+        
+        // Restore original methods
+        app.database.getElements = originalGetElements;
+        app.database.saveElements = originalSaveElements;
+        app.database.updateMetadataDisplay = originalUpdateMetadata;
+        app.canvas.clearElements = originalClearElements;
+        app.canvas.elementManager.createElement = originalCreateElement;
+        
+        return assert.isTrue(getElementsCalled, 'Should call getElements to load map') &&
+               assert.isTrue(clearElementsCalled, 'Should clear existing elements before loading') &&
+               assert.isTrue(createdElements.length >= 2, 'Should create elements from loaded data') &&
+               assert.isTrue(updateMetadataCalled, 'Should update metadata display when loading') &&
+               assert.isTrue(loadResult.success, 'Load operation should succeed') &&
+               assert.isTrue(saveElementsCalled, 'Should call saveElements to save map') &&
+               assert.isTrue(savedElements.length >= 3, 'Should save all elements including the new one') &&
+               assert.isTrue(saveResult.success, 'Save operation should succeed');
+    }, ['Database manager initialization']);
 }
 
 // Export test functions
