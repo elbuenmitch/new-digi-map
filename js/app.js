@@ -3,6 +3,9 @@ import { CanvasManager } from './canvas.js';
 import { MenuManager } from './menu.js';
 import { SettingsManager } from './settings.js';
 import { SVGExporter } from './export.js';
+import { DatabaseManager } from './database.js';
+import { SaveDialog } from './save-dialog.js';
+import { LoadDialog } from './load-dialog.js';
 
 class App {
     constructor() {
@@ -11,6 +14,9 @@ class App {
         this.canvas = new CanvasManager(this);
         this.menu = new MenuManager(this);
         this.exporter = new SVGExporter(this);
+        this.database = new DatabaseManager();
+        this.saveDialog = new SaveDialog(this);
+        this.loadDialog = new LoadDialog(this);
         
         // Element types configuration
         this.elementTypes = {
@@ -99,6 +105,18 @@ class App {
         // Export SVG button
         document.getElementById('export-svg-btn').addEventListener('click', () => {
             this.exporter.exportSVG();
+        });
+        
+        // Save to DB button
+        document.getElementById('save-svg-btn') && 
+        document.getElementById('save-svg-btn').addEventListener('click', () => {
+            this.saveDialog.openDialog();
+        });
+        
+        // Load from DB button
+        document.getElementById('load-svg-btn') && 
+        document.getElementById('load-svg-btn').addEventListener('click', () => {
+            this.loadDialog.openDialog();
         });
         
         // Search functionality
