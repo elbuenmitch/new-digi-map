@@ -98,12 +98,12 @@ export class DatabaseManager {
     /**
      * Check if an SVG already exists for a centercode/floor combination
      */
-    async checkSVGExists(centercodeId, floorId) {
+    async checkSVGExists(centercodeId, floorName) {
         const { data, error } = await this.supabase
             .from('elements')
             .select('id')
             .eq('centercode', centercodeId)
-            .eq('picking_floor', floorId)
+            .eq('picking_floor', floorName)
             .limit(1);
         
         if (error) {
@@ -116,12 +116,16 @@ export class DatabaseManager {
 
     /**
      * Save elements to the database
+     * 
+     * @param {Array} elements - Array of elements to save
+     * @param {number} centercodeId - Centercode ID
+     * @param {string} floorName - Floor name (picking_floor text value)
      */
-    async saveElements(elements, centercodeId, floorId) {
+    async saveElements(elements, centercodeId, floorName) {
         // Convert elements to the database format
         const dbElements = elements.map(element => ({
             centercode: centercodeId,
-            picking_floor: floorId,
+            picking_floor: floorName,
             element_id: element.id,
             x: element.x,
             y: element.y,
@@ -144,13 +148,16 @@ export class DatabaseManager {
 
     /**
      * Load elements from the database for a specific centercode/floor
+     * 
+     * @param {number} centercodeId - Centercode ID
+     * @param {string} floorName - Floor name (picking_floor text value)
      */
-    async loadElements(centercodeId, floorId) {
+    async loadElements(centercodeId, floorName) {
         const { data, error } = await this.supabase
             .from('elements')
             .select('*')
             .eq('centercode', centercodeId)
-            .eq('picking_floor', floorId);
+            .eq('picking_floor', floorName);
         
         if (error) {
             console.error('Error loading elements:', error);
@@ -201,13 +208,13 @@ export class DatabaseManager {
             }
             
             // Step 2: Check if elements exist for this centercode/floor combination
-            const exists = await this.checkSVGExists(centercodeData.id, floorData.id);
+            const exists = await this.checkSVGExists(centercodeData.id, floorName);
             if (!exists) {
                 throw new Error(`No SVG data found for centercode "${centercode}" and floor "${floorName}"`);
             }
             
             // Step 3: Load elements from database
-            const elements = await this.loadElements(centercodeData.id, floorData.id);
+            const elements = await this.loadElements(centercodeData.id, floorName);
             
             // Step 4: Update element properties based on element types in app settings
             elements.forEach(element => {
@@ -336,26 +343,54 @@ export class DatabaseManager {
                 };
             }
             
-            // Step 2: Delete all existing elements for this centercode/floor
-            const { error: deleteError } = await this.supabase
-                .from('elements')
-                .delete()
-                .eq('centercode', centercodeData.id)
-                .eq('picking_floor', floorData.id);
+            // Step 2: Check and delete all existing elements for this centercode/floor
+            console.log(`Deleting existing elements for centercode=${centercodeData.id}, picking_floor=${floorName}`);
             
-            if (deleteError) {
-                console.error('Error deleting existing elements:', deleteError);
-                return { 
-                    success: false, 
-                    message: `Error deleting existing elements: ${deleteError.message}` 
-                };
+            // First verify what we're going to delete
+            const { data: existingElements } = await this.supabase
+                .from('elements')
+                .select('id, element_id')
+                .eq('centercode', centercodeData.id)
+                .eq('picking_floor', floorName);
+                
+            console.log(`Found ${existingElements?.length || 0} existing elements to delete`);
+            
+            if (existingElements && existingElements.length > 0) {
+                // Delete explicitly by IDs to ensure complete deletion
+                const elementIds = existingElements.map(el => el.id);
+                
+                const { error: deleteError } = await this.supabase
+                    .from('elements')
+                    .delete()
+                    .in('id', elementIds);
+                
+                if (deleteError) {
+                    console.error('Error deleting existing elements:', deleteError);
+                    return { 
+                        success: false, 
+                        message: `Error deleting existing elements: ${deleteError.message}` 
+                    };
+                }
+                
+                // Double-check deletion completed
+                const { count } = await this.supabase
+                    .from('elements')
+                    .select('id', { count: 'exact', head: true })
+                    .eq('centercode', centercodeData.id)
+                    .eq('picking_floor', floorName);
+                    
+                if (count > 0) {
+                    console.warn(`Deletion may not have completed fully - ${count} elements still exist`);
+                }
             }
             
-            // Step 3: Insert new elements
+            // Step 3: Insert new elements with a slight delay to ensure deletion completed
+            await new Promise(resolve => setTimeout(resolve, 500)); // 500ms delay
+            
             // Convert elements to the database format
             const dbElements = elements.map(element => ({
                 centercode: centercodeData.id,
-                picking_floor: floorData.id,
+                picking_floor: floorName,
                 element_id: element.id,
                 x: element.x,
                 y: element.y,
@@ -364,9 +399,21 @@ export class DatabaseManager {
                 element_type: element.type
             }));
             
-            const { error: insertError } = await this.supabase
-                .from('elements')
-                .insert(dbElements);
+            // Insert elements in smaller batches to avoid potential issues
+            let insertError = null;
+            const batchSize = 50;
+            
+            for (let i = 0; i < dbElements.length; i += batchSize) {
+                const batch = dbElements.slice(i, i + batchSize);
+                const { error } = await this.supabase
+                    .from('elements')
+                    .insert(batch);
+                    
+                if (error) {
+                    insertError = error;
+                    break;
+                }
+            }
             
             if (insertError) {
                 console.error('Error saving updated elements:', insertError);
