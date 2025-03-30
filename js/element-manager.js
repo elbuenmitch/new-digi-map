@@ -25,10 +25,16 @@ export class ElementManager {
     createElement(type, x, y, width, height, id = null) {
         console.log('!!! createElement DEBUG - Parameters:', { type, x, y, width, height, id });
         console.log('!!! createElement DEBUG - Element type config:', JSON.stringify(this.app.elementTypes[type]));
+        console.log('!!! createElement DEBUG - Caller:', new Error().stack);
         
         // Generate a unique ID if not provided
         const elementId = id || Date.now().toString();
         console.log('!!! createElement DEBUG - Using element ID:', elementId);
+        
+        // Determine if this element is being loaded from DB
+        // You can check call stack or pass a flag
+        const isLoadingFromDB = new Error().stack.includes('populateEditorWithSVG');
+        console.log('!!! createElement DEBUG - Loading from DB?', isLoadingFromDB);
         
         // Create DOM element
         const element = document.createElement('div');
@@ -46,7 +52,15 @@ export class ElementManager {
         const elementColor = typeConfig.color;
         console.log(`!!! createElement DEBUG - Using color: ${elementColor} for type: ${type}`);
         element.style.backgroundColor = elementColor;
-        element.style.opacity = '0.7'; // Semi-transparent
+        
+        // Set opacity based on where element is being created from
+        if (isLoadingFromDB) {
+            element.style.opacity = '1.0'; // Fully opaque for loaded elements
+            console.log('!!! createElement DEBUG - Setting opacity to 1.0 for loaded element');
+        } else {
+            element.style.opacity = '0.7'; // Semi-transparent for new elements
+            console.log('!!! createElement DEBUG - Setting opacity to 0.7 for new element');
+        }
         
         // Add ID text if showName is true for this element type
         if (typeConfig.showName) {
