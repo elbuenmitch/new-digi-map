@@ -89,6 +89,30 @@ export class CanvasManager {
     }
     
     /**
+     * Set the current mode for the canvas (select, draw, pan)
+     * @param {string} mode - The mode to set ('select', 'draw', 'pan')
+     */
+    setMode(mode) {
+        // Set cursor style based on mode
+        switch(mode) {
+            case 'select':
+                this.canvas.style.cursor = 'default';
+                break;
+            case 'draw':
+                this.canvas.style.cursor = 'crosshair';
+                break;
+            case 'pan':
+                this.canvas.style.cursor = 'grab';
+                break;
+            default:
+                this.canvas.style.cursor = 'default';
+        }
+        
+        // Store the current mode
+        this.currentMode = mode;
+    }
+    
+    /**
      * Clear all elements from the canvas
      */
     clearElements() {
@@ -599,16 +623,27 @@ export class CanvasManager {
             const x = (e.clientX - rect.left) / this.scale;
             const y = (e.clientY - rect.top) / this.scale;
             
-            if (document.getElementById('pan-tool').classList.contains('active')) {
-                this.startPanning(x, y);
-            } else if (document.getElementById('draw-tool').classList.contains('active')) {
-                this.startDrawing(x, y);
-            } else {
-                // Start selection rectangle
-                this.isSelecting = true;
-                this.selectionStart = { x, y };
-                this.createSelectionRectangle();
-                this.updateSelectionRectangle(x, y);
+            // Use the currentMode property if it exists, otherwise fall back to checking classes
+            const mode = this.currentMode || (
+                document.getElementById('pan-tool').classList.contains('active') ? 'pan' :
+                document.getElementById('draw-tool').classList.contains('active') ? 'draw' : 'select'
+            );
+            
+            switch(mode) {
+                case 'pan':
+                    this.startPanning(x, y);
+                    break;
+                case 'draw':
+                    this.startDrawing(x, y);
+                    break;
+                case 'select':
+                default:
+                    // Start selection rectangle
+                    this.isSelecting = true;
+                    this.selectionStart = { x, y };
+                    this.createSelectionRectangle();
+                    this.updateSelectionRectangle(x, y);
+                    break;
             }
         });
         

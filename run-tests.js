@@ -322,11 +322,23 @@ class TestRunner {
     }
 }
 
+// Import keyboard shortcuts tests
+let defineKeyboardShortcutsTests;
+try {
+    defineKeyboardShortcutsTests = require('./js/keyboard-shortcuts-test.js').defineKeyboardShortcutsTests;
+} catch (error) {
+    console.warn('Could not load keyboard shortcuts tests:', error.message);
+    defineKeyboardShortcutsTests = (runner) => {
+        console.log('No keyboard shortcuts tests available');
+    };
+}
+
 // Define all test cases
 function defineTests(runner) {
     // Call our base test definitions and database test definitions
     defineBaseTests(runner);
     defineDatabaseTests(runner);
+    defineKeyboardShortcutsTests(runner);
 }
 
 // Define base functionality tests

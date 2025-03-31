@@ -15,6 +15,7 @@ A visual editor for creating and editing floor plans with rectangular elements t
 - **Multi-selection**: Select multiple elements by holding Shift while clicking
 - **Copy/Paste**: Copy selected elements with Cmd+C/Ctrl+C and paste with Cmd+V/Ctrl+V
 - **Drag and Drop**: Move elements around the canvas by selecting and dragging
+- **Keyboard Shortcuts**: Quick access to tools: 'V' for Select tool, 'H' for Hand tool, 'B' for Barrier tool, 'L' for Location tool
 - **Multi-Element Drag and Drop**: Select multiple elements and drag them as a group
 - **Overlap Prevention**: Elements cannot overlap, with automatic notifications when conflicts occur
 - **Mouse Wheel Zoom**: Zoom in/out using the mouse wheel directly on the canvas
@@ -38,7 +39,7 @@ A visual editor for creating and editing floor plans with rectangular elements t
    - Toggle visibility on/off as needed during your workflow
    - Background images are automatically saved with your floor plan
    - Each floor plan can have its own unique background image
-5. **Navigate Canvas**: Use the Pan tool to move around the canvas, and the zoom controls to zoom in/out.
+5. **Navigate Canvas**: Use the Pan tool (press 'H' key) to move around the canvas, the Select tool (press 'V' key) to select elements, and the zoom controls to zoom in/out.
 5. **Find Elements**: Use the search box to locate elements by ID.
 6. **Configure Settings**: Click Settings to change grid size, upload background image, and change element type properties.
 7. **Export**: Click "Export SVG" to download the canvas elements as an SVG file.
@@ -76,9 +77,10 @@ A visual editor for creating and editing floor plans with rectangular elements t
 - Copy/Paste: Selecting one or more elements allows the option to copy those elements. Pasting them can be done by pressing cmd-v (or ctr-v in PC), pasting happens in a place of the canvas where there's no existing elements so overlap can be prevented.
 
 ## Navigation Menu
-- From this menu the user can select the type of element to add to the canvas. Initially it will hold only the "Location" and "Barrier" options, but if a new option is added, it should be added to this menu.
+- From this menu the user can select the type of element to add to the canvas. Initially it will hold only the "Location" (shortcut: 'L' key) and "Barrier" (shortcut: 'B' key) options, but if a new option is added, it should be added to this menu.
 - Zoom: zoom level and plus/minus buttons to zoom in/out in 10% steps.
-- Pan: the mouse changes to a mode in which the user clicks and holds a point in the canvas to pan through it.
+- Select: tool for selecting elements in the canvas. Can be quickly activated by pressing the 'V' key.
+- Pan (Hand): the mouse changes to a mode in which the user clicks and holds a point in the canvas to pan through it. Can be quickly activated by pressing the 'H' key.
 - Settings: clicking this button opens a modal with the settings menu.
 - Search field: this is a text input field where the user can type an element ID, and when pressing enter, the canvas pans to display that element in the center of the screen, and highlight it in a different color. Highlight is removed once the user clicks somewhere else.
 - SVG output button: this button exports an SVG file that captures the locations, dimensions, IDs of all elements in the canvas.

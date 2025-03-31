@@ -84,6 +84,29 @@ class App {
             this.setActiveToolButton('pan-tool');
         });
         
+        // Keyboard shortcuts for tool selection
+        document.addEventListener('keydown', (e) => {
+            // Only process if not currently in an input field
+            if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+                switch(e.key.toLowerCase()) {
+                    case 'h': // Hand tool (pan)
+                        // Force activate the pan tool and update UI
+                        this.setActiveToolButton('pan-tool');
+                        break;
+                    case 'v': // Select tool
+                        // Activate the select tool and update UI
+                        this.setActiveToolButton('select-tool');
+                        break;
+                    case 'b': // Barrier tool
+                        this.setActiveElementType('Barrier'); // This now also activates draw tool
+                        break;
+                    case 'l': // Location tool
+                        this.setActiveElementType('Location'); // This now also activates draw tool
+                        break;
+                }
+            }
+        });
+        
         // Settings button with enhanced error handling
         document.getElementById('settings-btn').addEventListener('click', () => {
             try {
@@ -157,18 +180,40 @@ class App {
                     button.classList.remove('active');
                 }
             });
+            
+            // Automatically activate the draw tool when selecting an element type
+            this.setActiveToolButton('draw-tool');
+            
+            // If canvas is available, set the drawing mode
+            if (this.canvas && this.canvas.setMode) {
+                this.canvas.setMode('draw');
+            }
         }
     }
     
     setActiveToolButton(toolId) {
-        // Update the navigation tool buttons
-        document.querySelectorAll('.tool-section:nth-child(2) .tool-button').forEach(button => {
-            if (button.id === toolId) {
-                button.classList.add('active');
-            } else {
+        // Update the navigation tool buttons - use the ID directly for more reliable selection
+        const selectedButton = document.getElementById(toolId);
+        if (selectedButton) {
+            // First deactivate all tools in the Navigation section
+            document.querySelectorAll('#select-tool, #draw-tool, #pan-tool').forEach(button => {
                 button.classList.remove('active');
+            });
+            
+            // Then activate the selected tool
+            selectedButton.classList.add('active');
+            
+            // If we're changing to a navigation tool, update the canvas mode
+            if (this.canvas && this.canvas.setMode) {
+                if (toolId === 'select-tool') {
+                    this.canvas.setMode('select');
+                } else if (toolId === 'draw-tool') {
+                    this.canvas.setMode('draw');
+                } else if (toolId === 'pan-tool') {
+                    this.canvas.setMode('pan');
+                }
             }
-        });
+        }
     }
     
     generateUniqueId(type) {
@@ -245,6 +290,36 @@ class App {
     
     getZoomStepSize() {
         return this.settings.getZoomStepSize();
+    }
+    
+    /**
+     * Set canvas width in number of cells
+     * @param {number} width - Canvas width in cells
+     */
+    setCanvasWidth(width) {
+        if (typeof width === 'number' && width > 0) {
+            this.settings.canvasWidth = width;
+        }
+    }
+    
+    /**
+     * Set canvas height in number of cells
+     * @param {number} height - Canvas height in cells
+     */
+    setCanvasHeight(height) {
+        if (typeof height === 'number' && height > 0) {
+            this.settings.canvasHeight = height;
+        }
+    }
+    
+    /**
+     * Set cell size in pixels
+     * @param {number} size - Cell size in pixels
+     */
+    setCellSize(size) {
+        if (typeof size === 'number' && size > 0) {
+            this.settings.cellSize = size;
+        }
     }
     
     /**
