@@ -502,7 +502,6 @@ export class DatabaseManager {
                     .eq('floor', floor);
                 
                 if (countError) {
-                    // console.error('Error checking floor-centercode association:', countError);
                 } else if (count === 0) {
                     // Create a placeholder element with this floor and centercode
                     // This ensures the floor shows up when querying by centercode
@@ -529,7 +528,6 @@ export class DatabaseManager {
             
             return floorObj;
         } catch (error) {
-            // console.error('Error in createFloor:', error);
             // Return a minimal object so the UI can continue
             return { floor };
         }
@@ -555,7 +553,6 @@ export class DatabaseManager {
                 .eq('floor', floor);
             
             if (error) {
-                // console.error('Error checking if elements exist:', error);
                 throw error;
             }
             
@@ -563,7 +560,6 @@ export class DatabaseManager {
             const realElements = data ? data.filter(el => el.element_type !== 'placeholder') : [];
             return realElements.length > 0;
         } catch (error) {
-            // console.error('Error in elementsExist:', error);
             return false; // Default to false on error to avoid unnecessary confirmations
         }
     }
@@ -586,7 +582,6 @@ export class DatabaseManager {
             .eq('floor', floor);
         
         if (error) {
-            // console.error('Error fetching elements:', error);
             throw error;
         }
         
@@ -619,12 +614,46 @@ export class DatabaseManager {
                 .eq('floor', floor);
             
             if (deleteError) {
-                // console.error('Error deleting existing elements:', deleteError);
                 throw deleteError;
+            }
+            
+            // Get current canvas dimensions from the app instance
+            let canvasWidth = 400; // Default width
+            let canvasHeight = 300; // Default height
+            let cellSize = 20; // Default cell size
+            
+            // Extract dimensions from app if available
+            if (window.app) {
+                canvasWidth = window.app.getCanvasWidth ? window.app.getCanvasWidth() : 400;
+                canvasHeight = window.app.getCanvasHeight ? window.app.getCanvasHeight() : 300;
+                cellSize = window.app.getCellSize ? window.app.getCellSize() : 20;
+                
+                console.log(`Saving canvas dimensions: ${canvasWidth}x${canvasHeight}, cell size: ${cellSize}`);
             }
 
             // Prepare elements data
-            const elementsToInsert = elements.map(element => {
+            // Add a placeholder element to store canvas dimensions if no elements exist
+            // This ensures we always save canvas dimensions even for empty maps
+            let elementsToInsert = [];
+            
+            if (elements.length === 0) {
+                elementsToInsert.push({
+                    x: 0,
+                    y: 0,
+                    w: 0,
+                    h: 0,
+                    element_type: 'placeholder',
+                    element_name: 'placeholder',
+                    centercode,
+                    floor,
+                    canvas_width: app.getCanvasWidth(),
+                    canvas_height: app.getCanvasHeight(),
+                    cell_size: app.getCellSize()
+                });
+            }
+            
+            // Process regular elements
+            elementsToInsert = elementsToInsert.concat(elements.map(element => {
                 // Get values or use defaults for required fields to avoid null constraints
                 const x = typeof element.x === 'number' ? element.x : 0;
                 const y = typeof element.y === 'number' ? element.y : 0;
@@ -674,8 +703,6 @@ export class DatabaseManager {
                     element_name = `${element_type}_${rawId}`;
                 }
                 
-                // console.log(`Saving element: type=${element_type}, name=${element_name}`);
-                
                 return {
                     x,
                     y,
@@ -684,9 +711,12 @@ export class DatabaseManager {
                     element_type,
                     element_name,
                     centercode,
-                    floor
+                    floor,
+                    canvas_width: app.getCanvasWidth(),
+                    canvas_height: app.getCanvasHeight(),
+                    cell_size: app.getCellSize()
                 };
-            });
+            }));
 
             if (elementsToInsert.length > 0) {
                 const { error: insertError } = await this.supabase
@@ -694,7 +724,6 @@ export class DatabaseManager {
                     .insert(elementsToInsert);
                 
                 if (insertError) {
-                    // console.error('Error inserting elements:', insertError);
                     throw insertError;
                 }
             }
@@ -704,7 +733,6 @@ export class DatabaseManager {
                 message: `Successfully saved ${elementsToInsert.length} elements for ${centercode} / Floor ${floor}`
             };
         } catch (error) {
-            // console.error('Error saving elements:', error);
             return {
                 success: false,
                 message: error.message || 'Unknown error occurred while saving elements'
@@ -737,6 +765,36 @@ export class DatabaseManager {
                     success: false,
                     message: `No elements found for ${centercode} / Floor ${floor}`
                 };
+            }
+            
+            // We MUST restore the canvas dimensions to match what was saved
+            // This ensures element coordinates and grid alignment are preserved
+            let canvasWidth = 400; // Default width
+            let canvasHeight = 300; // Default height
+            let cellSize = 20; // Default cell size
+            
+            // Get the saved dimensions from the database elements
+            if (elements[0]) {
+                canvasWidth = elements[0].canvas_width || canvasWidth;
+                canvasHeight = elements[0].canvas_height || canvasHeight;
+                cellSize = elements[0].cell_size || cellSize;
+                console.log(`Restoring canvas dimensions: ${canvasWidth}x${canvasHeight}, cell size: ${cellSize}px`);
+            }
+            
+            // CRITICAL: Apply the saved dimensions to reshape the canvas BEFORE loading elements
+            // This ensures element positions will match their original locations
+            if (app.setCanvasWidth && app.setCanvasHeight && app.setCellSize) {
+                // First set cell size, then canvas dimensions
+                app.setCellSize(cellSize);
+                app.setCanvasWidth(canvasWidth);
+                app.setCanvasHeight(canvasHeight);
+                
+                // Update the canvas with the restored dimensions
+                app.canvas.updateCanvasDimensions();
+                app.canvas.gridManager.drawGrid();
+                
+                // Re-center the canvas with new dimensions
+                app.canvas.centerCanvas();
             }
             
             // Set current map info in the app
@@ -807,10 +865,6 @@ export class DatabaseManager {
                     // Use the mapped type if it exists, otherwise fall back to 'Location'
                     const finalType = app.elementTypes[mappedType] ? mappedType : 'Location';
                     
-                    // console.log('Creating element from DB:', element);
-                    // console.log('Database element name:', element.element_name);
-                    // console.log('Database element type:', element.element_type);
-                    
                     // We need to keep the entire element_name as the ID to avoid collisions
                     // between different element types (e.g., location_1 and barrier_1)
                     let elementId = element.element_name;
@@ -825,9 +879,6 @@ export class DatabaseManager {
                             displayId = parts.slice(1).join('_');
                         }
                     }
-                    
-                    // console.log('Using element ID:', elementId);
-                    // console.log('Display ID for element:', displayId);
                     
                     // Add the element using the full element_name as the ID to prevent collisions
                     // The element-manager.js already has the fix to set opacity to 1.0 for DB elements
@@ -867,8 +918,6 @@ export class DatabaseManager {
                         }
                     }
                     
-                    // We no longer override createElement, so no need to restore it
-                    
                     // Store the created element in the app's elements array
                     if (createdElement) {
                         // Store additional metadata from the database
@@ -897,19 +946,22 @@ export class DatabaseManager {
                                         // If this ID is greater than the current nextId, update nextId
                                         if (typeConfig.nextId <= idNumber) {
                                             typeConfig.nextId = idNumber + 1;
-                                            // console.log(`Updated ${finalType} nextId to ${typeConfig.nextId}`);
                                         }
                                     }
                                 }
                             }
                         } catch (error) {
-                            // console.error('Error updating nextId:', error);
                         }
                     }
                 } catch (error) {
-                    // console.error('Error creating element:', error, element);
                 }
             });
+            
+            // Do a final redraw of the grid to ensure proper rendering
+            // We're not resetting the viewport since we want to preserve the restored dimensions
+            setTimeout(() => {
+                app.canvas.gridManager.drawGrid();
+            }, 200);
             
             // Update the metadata display
             this.updateMetadataDisplay(app, centercode, floor);
@@ -919,7 +971,6 @@ export class DatabaseManager {
                 message: `Successfully loaded ${elements.length} elements for ${centercode} / Floor ${floor}`
             };
         } catch (error) {
-            // console.error('Error populating editor with SVG:', error);
             return {
                 success: false,
                 message: error.message || 'Unknown error occurred while loading elements'

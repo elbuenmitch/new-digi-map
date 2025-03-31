@@ -59,10 +59,48 @@ export class UIManager {
         document.getElementById('element-width').textContent = element.width;
         document.getElementById('element-height').textContent = element.height;
         
-        // Position popup near the mouse click
+        // Get element and popup dimensions
         const rect = canvasContainer.getBoundingClientRect();
-        popup.style.left = `${clientX - rect.left + 10}px`;
-        popup.style.top = `${clientY - rect.top + 10}px`;
+        const elementRect = {
+            x: element.x,
+            y: element.y,
+            width: element.width,
+            height: element.height
+        };
+        const popupWidth = popup.offsetWidth || 250; // Default width from CSS if not rendered yet
+        const popupHeight = popup.offsetHeight || 200; // Estimated height if not rendered yet
+        
+        // Determine the best position for the popup
+        // Try to position to the right of the element first
+        let left = (elementRect.x + elementRect.width + 20) - rect.left;
+        let top = elementRect.y - rect.top;
+        
+        // Check if popup would go off the right edge of the canvas
+        if (left + popupWidth > canvasContainer.clientWidth) {
+            // If it would, try positioning to the left of the element instead
+            left = (elementRect.x - popupWidth - 20) - rect.left;
+            
+            // If that would go off the left edge, position it above or below
+            if (left < 0) {
+                left = elementRect.x - rect.left;
+                
+                // Try below the element
+                top = (elementRect.y + elementRect.height + 20) - rect.top;
+                
+                // If that would go off the bottom, try above
+                if (top + popupHeight > canvasContainer.clientHeight) {
+                    top = (elementRect.y - popupHeight - 20) - rect.top;
+                }
+            }
+        }
+        
+        // Ensure popup stays within canvas bounds
+        left = Math.max(10, Math.min(canvasContainer.clientWidth - popupWidth - 10, left));
+        top = Math.max(10, Math.min(canvasContainer.clientHeight - popupHeight - 10, top));
+        
+        // Position popup
+        popup.style.left = `${left}px`;
+        popup.style.top = `${top}px`;
         
         // Show popup
         popup.classList.remove('hidden');
