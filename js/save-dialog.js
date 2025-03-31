@@ -270,6 +270,20 @@ export class SaveDialog {
                     // Update the elements in the database
                     const result = await this.db.saveElements(this.app.elements, centercode, floor);
                     
+                    // Set current map info in the app
+                    this.app.currentCentercode = centercode;
+                    this.app.currentFloor = floor;
+                    
+                    // Save any pending background image
+                    if (this.app.backgroundImage && (this.app.backgroundImage.pendingFile || this.app.backgroundImage.url)) {
+                        try {
+                            await this.app.saveBackgroundImage();
+                            console.log('Background image saved successfully');
+                        } catch (imageError) {
+                            console.error('Error saving background image:', imageError);
+                        }
+                    }
+                    
                     // Close the dialog
                     this.closeDialog();
                     
@@ -287,6 +301,20 @@ export class SaveDialog {
             
             // Save elements to database as new entry
             const result = await this.db.saveElements(this.app.elements, centercode, floor);
+            
+            // Set current map info in the app
+            this.app.currentCentercode = centercode;
+            this.app.currentFloor = floor;
+            
+            // Save any pending background image
+            if (this.app.backgroundImage && (this.app.backgroundImage.pendingFile || this.app.backgroundImage.url)) {
+                try {
+                    await this.app.saveBackgroundImage();
+                    console.log('Background image saved successfully');
+                } catch (imageError) {
+                    console.error('Error saving background image:', imageError);
+                }
+            }
             
             // Close the dialog
             this.closeDialog();

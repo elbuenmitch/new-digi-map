@@ -9,7 +9,7 @@
 <body>
     <div class="app-container">
         <div class="nav-menu">
-            <div class="logo">SVG Editor</div>
+            <div class="logo">Digital Map 2.0</div>
             
             <div class="tool-section">
                 <div class="section-title">Elements</div>
@@ -38,7 +38,7 @@
                     </button>
                     <button id="pan-tool" class="tool-button">
                         <div class="tool-icon pan-icon"></div>
-                        <div class="tool-label">Pan</div>
+                        <div class="tool-label">Hand</div>
                     </button>
                 </div>
                 <div class="zoom-controls">
@@ -62,6 +62,7 @@
         </div>
 
         <div class="canvas-container">
+            <div id="metadata-display" class="metadata-display"></div>
             <div id="canvas"></div>
         </div>
     </div>
@@ -148,6 +149,34 @@
                         <div class="form-group">
                             <label for="barrier-show-name">Show ID in Element:</label>
                             <input type="checkbox" id="barrier-show-name">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="settings-section">
+                    <h3>Background Image</h3>
+                    
+                    <!-- Upload Section (always visible) -->
+                    <div id="background-image-upload-section" class="background-image-section">
+                        <div class="form-group">
+                            <label for="background-image-upload" id="background-image-upload-button">Upload Image</label>
+                            <input type="file" id="background-image-upload" accept="image/*" style="display: none;">
+                        </div>
+                        <p class="help-text">Select an image to use as background. The canvas size will be adjusted to fit the image if no elements exist yet.</p>
+                    </div>
+                    
+                    <!-- Settings Section (visible only when image exists) -->
+                    <div id="background-image-settings-section" class="background-image-section" style="display: none;">
+                        <div class="form-group">
+                            <label for="background-image-opacity">Opacity: <span id="background-image-opacity-value">1.00</span></label>
+                            <input type="range" id="background-image-opacity" min="0" max="1" step="0.05" value="1">
+                        </div>
+                        <div class="form-group">
+                            <label for="background-image-visible">Show Background Image:</label>
+                            <input type="checkbox" id="background-image-visible" checked>
+                        </div>
+                        <div class="form-group">
+                            <button id="remove-background-image" class="danger-button">Remove Image</button>
                         </div>
                     </div>
                 </div>

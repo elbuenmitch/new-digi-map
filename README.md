@@ -20,7 +20,7 @@ A visual editor for creating and editing floor plans with rectangular elements t
 - **Mouse Wheel Zoom**: Zoom in/out using the mouse wheel directly on the canvas
 - **Database Integration**: Save and load floor plans from Supabase database
 - **Metadata Display**: Shows centercode and floor information when a map is loaded
-- **Background Image Support**: Upload background images for tracing or reference
+- **Background Image Support**: Upload background images for tracing or reference, with adjustable opacity and visibility controls
 - **Element Type Management**: Edit properties of element types affecting all instances
 
 ## Main Usage
@@ -32,7 +32,13 @@ A visual editor for creating and editing floor plans with rectangular elements t
    - Click and drag any selected element to move the entire group together
    - The system will prevent repositioning if it would cause elements to overlap
    - You'll receive a notification if an overlap would occur when releasing the mouse
-4. **Navigate Canvas**: Use the Pan tool to move around the canvas, and the zoom controls to zoom in/out.
+4. **Working with Background Images**:
+   - Upload a background image through the Settings panel
+   - Adjust opacity using the slider to make it more or less prominent
+   - Toggle visibility on/off as needed during your workflow
+   - Background images are automatically saved with your floor plan
+   - Each floor plan can have its own unique background image
+5. **Navigate Canvas**: Use the Pan tool to move around the canvas, and the zoom controls to zoom in/out.
 5. **Find Elements**: Use the search box to locate elements by ID.
 6. **Configure Settings**: Click Settings to change grid size, upload background image, and change element type properties.
 7. **Export**: Click "Export SVG" to download the canvas elements as an SVG file.

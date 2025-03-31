@@ -11,6 +11,11 @@ export class SettingsManager {
         this.gridVisible = true; // Default grid visibility
         this.zoomStepSize = 0.05; // Default zoom step size (5%)
         
+        // Background image settings
+        this.backgroundImageVisible = true;
+        this.backgroundImageOpacity = 1.0;
+        this.backgroundImageFile = null; // Stores pending image file
+        
         this.setupEventListeners();
     }
     
@@ -23,6 +28,42 @@ export class SettingsManager {
         // Close modal button
         document.querySelector('.close-modal').addEventListener('click', () => {
             this.closeSettingsModal();
+        });
+        
+        // Background image upload
+        document.getElementById('background-image-upload')?.addEventListener('change', (e) => {
+            if (e.target.files && e.target.files[0]) {
+                this.backgroundImageFile = e.target.files[0];
+                this.handleBackgroundImageUpload(this.backgroundImageFile);
+            }
+        });
+        
+        // Background image opacity control
+        document.getElementById('background-image-opacity')?.addEventListener('input', (e) => {
+            const opacity = parseFloat(e.target.value);
+            if (!isNaN(opacity) && opacity >= 0 && opacity <= 1) {
+                this.backgroundImageOpacity = opacity;
+                this.app.setBackgroundImageOpacity(opacity);
+                
+                // Update display value
+                const opacityValue = document.getElementById('background-image-opacity-value');
+                if (opacityValue) {
+                    opacityValue.textContent = opacity.toFixed(2);
+                }
+            }
+        });
+        
+        // Background image visibility toggle
+        document.getElementById('background-image-visible')?.addEventListener('change', (e) => {
+            this.backgroundImageVisible = e.target.checked;
+            this.app.toggleBackgroundImageVisibility(e.target.checked);
+        });
+        
+        // Remove background image button
+        document.getElementById('remove-background-image')?.addEventListener('click', () => {
+            if (confirm('Are you sure you want to remove the background image?')) {
+                this.removeBackgroundImage();
+            }
         });
     }
     
@@ -50,6 +91,12 @@ export class SettingsManager {
             if (colorInput) colorInput.value = typeConfig.color;
             if (showNameInput) showNameInput.checked = typeConfig.showName;
         }
+        
+        // Update background image settings if elements exist
+        this.updateBackgroundImageSettingsDisplay();
+        
+        // Show/hide background image sections based on state
+        this.updateBackgroundImageSectionsVisibility();
         
         // Get modal element
         const modalElement = document.getElementById('settings-modal');
@@ -91,12 +138,187 @@ export class SettingsManager {
         }
     }
     
+    /**
+     * Handle background image upload
+     * @param {File} file - The image file
+     */
+    async handleBackgroundImageUpload(file) {
+        if (!file) return;
+        
+        try {
+            // Check if file is an image
+            if (!file.type.match('image.*')) {
+                this.showWarningMessage('Please select a valid image file.');
+                return;
+            }
+            
+            // Check file size (max 10MB)
+            const MAX_SIZE = 10 * 1024 * 1024; // 10MB
+            if (file.size > MAX_SIZE) {
+                this.showWarningMessage('Image file is too large. Maximum size is 10MB.');
+                return;
+            }
+            
+            // Process the image
+            await this.app.setBackgroundImageFromFile(file);
+            
+            // Update opacity and visibility inputs
+            if (document.getElementById('background-image-opacity')) {
+                document.getElementById('background-image-opacity').value = this.backgroundImageOpacity;
+            }
+            if (document.getElementById('background-image-visible')) {
+                document.getElementById('background-image-visible').checked = this.backgroundImageVisible;
+            }
+            
+            // Show preview
+            this.showBackgroundImagePreview();
+            
+            // Update section visibility
+            this.updateBackgroundImageSectionsVisibility();
+            
+            // If there's a saved map, save the image
+            if (this.app.currentCentercode && this.app.currentFloor) {
+                try {
+                    await this.app.saveBackgroundImage();
+                } catch (error) {
+                    console.error('Error saving background image:', error);
+                    this.showWarningMessage('The image was loaded but could not be saved to the database.');
+                }
+            }
+        } catch (error) {
+            console.error('Error handling background image:', error);
+            this.showWarningMessage('Failed to process image. Please try again.');
+        }
+    }
+    
+    /**
+     * Update background image sections visibility based on state
+     */
+    updateBackgroundImageSectionsVisibility() {
+        const hasBackgroundImage = !!this.app.backgroundImage.url;
+        
+        // Upload section (always visible)
+        const uploadSection = document.getElementById('background-image-upload-section');
+        if (uploadSection) {
+            uploadSection.style.display = 'block';
+            
+            // Update button text
+            const uploadButton = document.getElementById('background-image-upload-button');
+            if (uploadButton) {
+                uploadButton.textContent = hasBackgroundImage ? 'Replace Image' : 'Upload Image';
+            }
+        }
+        
+        // Settings section (only visible if image exists)
+        const settingsSection = document.getElementById('background-image-settings-section');
+        if (settingsSection) {
+            settingsSection.style.display = hasBackgroundImage ? 'block' : 'none';
+        }
+    }
+    
+    /**
+     * Update background image settings display
+     */
+    updateBackgroundImageSettingsDisplay() {
+        // Set values from current state
+        const opacityInput = document.getElementById('background-image-opacity');
+        if (opacityInput) {
+            opacityInput.value = this.app.backgroundImage.opacity;
+        }
+        
+        const visibilityInput = document.getElementById('background-image-visible');
+        if (visibilityInput) {
+            visibilityInput.checked = this.app.backgroundImage.showImage;
+        }
+        
+        // Update opacity display value
+        const opacityValue = document.getElementById('background-image-opacity-value');
+        if (opacityValue) {
+            opacityValue.textContent = this.app.backgroundImage.opacity.toFixed(2);
+        }
+    }
+    
+    /**
+     * Show preview of background image
+     */
+    showBackgroundImagePreview() {
+        if (!this.app.backgroundImage.url) return;
+        
+        // Find or create preview container
+        let previewContainer = document.getElementById('background-image-preview');
+        if (!previewContainer) {
+            previewContainer = document.createElement('div');
+            previewContainer.id = 'background-image-preview';
+            previewContainer.style.marginTop = '10px';
+            previewContainer.style.maxWidth = '200px';
+            previewContainer.style.border = '1px solid #ccc';
+            
+            const uploadSection = document.getElementById('background-image-upload-section');
+            if (uploadSection) {
+                uploadSection.appendChild(previewContainer);
+            }
+        }
+        
+        // Clear previous preview
+        previewContainer.innerHTML = '';
+        
+        // Add preview image
+        const img = document.createElement('img');
+        img.src = this.app.backgroundImage.url;
+        img.style.width = '100%';
+        img.style.height = 'auto';
+        img.style.display = 'block';
+        
+        previewContainer.appendChild(img);
+    }
+    
+    /**
+     * Remove background image
+     */
+    async removeBackgroundImage() {
+        // If there's a saved map, delete from database
+        if (this.app.currentCentercode && this.app.currentFloor) {
+            try {
+                await this.app.database.deleteBackgroundImage(
+                    this.app.currentCentercode,
+                    this.app.currentFloor
+                );
+            } catch (error) {
+                console.error('Error deleting background image:', error);
+                this.showWarningMessage('Failed to delete image from database.');
+                return;
+            }
+        }
+        
+        // Clear from app
+        this.app.clearBackgroundImage();
+        
+        // Clear file input
+        const fileInput = document.getElementById('background-image-upload');
+        if (fileInput) {
+            fileInput.value = '';
+        }
+        
+        // Clear preview
+        const previewContainer = document.getElementById('background-image-preview');
+        if (previewContainer) {
+            previewContainer.innerHTML = '';
+        }
+        
+        // Update sections visibility
+        this.updateBackgroundImageSectionsVisibility();
+    }
+    
     saveSettings() {
         // Get canvas and grid settings
         const canvasWidthInput = document.getElementById('canvas-width');
         const canvasHeightInput = document.getElementById('canvas-height');
         const gridVisibleInput = document.getElementById('grid-visible');
         const zoomStepSizeInput = document.getElementById('zoom-step-size');
+        
+        // Get background image settings
+        const backgroundImageVisibleInput = document.getElementById('background-image-visible');
+        const backgroundImageOpacityInput = document.getElementById('background-image-opacity');
         
         // Check if there are elements directly on the app
         const elements = this.app.elements || [];
@@ -157,6 +379,34 @@ export class SettingsManager {
         } else if (this.app.canvas) {
             // If the grid isn't found but we have a canvas, redraw with current visibility
             this.app.canvas.updateGridVisibility(this.gridVisible);
+        }
+        
+        // Save background image settings if we have an image
+        if (this.app.backgroundImage.url) {
+            // Get values from inputs
+            if (backgroundImageVisibleInput) {
+                this.backgroundImageVisible = backgroundImageVisibleInput.checked;
+                this.app.toggleBackgroundImageVisibility(this.backgroundImageVisible);
+            }
+            
+            if (backgroundImageOpacityInput) {
+                const opacity = parseFloat(backgroundImageOpacityInput.value);
+                if (!isNaN(opacity) && opacity >= 0 && opacity <= 1) {
+                    this.backgroundImageOpacity = opacity;
+                    this.app.setBackgroundImageOpacity(this.backgroundImageOpacity);
+                }
+            }
+            
+            // If we have a pending image file and a saved map, save the image
+            if (this.backgroundImageFile && this.app.currentCentercode && this.app.currentFloor) {
+                this.app.saveBackgroundImage().catch(error => {
+                    console.error('Error saving background image:', error);
+                    this.showWarningMessage('Failed to save background image to database.');
+                });
+                
+                // Clear pending file
+                this.backgroundImageFile = null;
+            }
         }
         
         // Save element type settings

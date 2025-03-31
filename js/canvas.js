@@ -28,6 +28,9 @@ export class CanvasManager {
         this.selectionStart = { x: 0, y: 0 };
         this.selectionRect = null; // DOM element for selection marquee
         
+        // Background image container
+        this.backgroundImageContainer = null;
+        
         // UI manager for popups and notifications
         this.uiManager = new UIManager();
         
@@ -128,6 +131,131 @@ export class CanvasManager {
         this.gridManager.drawGrid();
         
         // Canvas viewport reset to default
+    }
+    
+    /**
+     * Initialize or get the background image container
+     * @returns {HTMLElement} The background image container
+     */
+    initBackgroundImageContainer() {
+        // If container already exists, return it
+        if (this.backgroundImageContainer) {
+            return this.backgroundImageContainer;
+        }
+        
+        // Create container for background image
+        this.backgroundImageContainer = document.createElement('div');
+        this.backgroundImageContainer.id = 'background-image-container';
+        this.backgroundImageContainer.style.position = 'absolute';
+        this.backgroundImageContainer.style.top = '0';
+        this.backgroundImageContainer.style.left = '0';
+        this.backgroundImageContainer.style.width = '100%';
+        this.backgroundImageContainer.style.height = '100%';
+        this.backgroundImageContainer.style.zIndex = '-1'; // Below grid and elements
+        this.backgroundImageContainer.style.pointerEvents = 'none'; // Don't capture mouse events
+        this.backgroundImageContainer.style.transformOrigin = 'top left';
+        
+        // Insert at the beginning of the canvas so it's behind everything
+        this.canvas.insertBefore(this.backgroundImageContainer, this.canvas.firstChild);
+        
+        return this.backgroundImageContainer;
+    }
+    
+    /**
+     * Set background image from URL
+     * @param {string} imageUrl - The image URL (data URL or remote URL)
+     * @param {number} opacity - Opacity (0-1)
+     * @param {boolean} showImage - Whether to show the image
+     * @param {number} originalWidth - Original image width
+     * @param {number} originalHeight - Original image height
+     */
+    setBackgroundImage(imageUrl, opacity = 1.0, showImage = true, originalWidth = 0, originalHeight = 0) {
+        if (!imageUrl) {
+            return;
+        }
+        
+        // Fix potential URL encoding issues by trying to properly format the URL
+        try {
+            // Replace any double encoded characters
+            const cleanUrl = decodeURIComponent(encodeURIComponent(imageUrl));
+            
+            // Initialize container if needed
+            const container = this.initBackgroundImageContainer();
+            
+            // Clear any existing image
+            this.clearBackgroundImage();
+            
+            // Create image element with error handling
+            const img = document.createElement('img');
+            img.id = 'background-image';
+            
+            // Set the image source
+            img.src = cleanUrl;
+            img.style.position = 'absolute';
+            img.style.top = '0';
+            img.style.left = '0';
+            img.style.width = '100%';
+            img.style.height = '100%';
+            img.style.objectFit = 'contain';
+            img.style.opacity = opacity.toString();
+            img.style.display = showImage ? 'block' : 'none';
+            
+            // Add to container
+            container.appendChild(img);
+            
+            // Store reference to image
+            this.app.backgroundImage.element = img;
+            
+            // Store original dimensions
+            this.app.backgroundImage.originalWidth = originalWidth;
+            this.app.backgroundImage.originalHeight = originalHeight;
+        } catch (error) {
+            // Silently handle errors
+        }
+    }
+    
+    /**
+     * Clear background image
+     */
+    clearBackgroundImage() {
+        const container = this.backgroundImageContainer;
+        if (container) {
+            // Remove all children
+            while (container.firstChild) {
+                container.removeChild(container.firstChild);
+            }
+        }
+        
+        // Clear reference to image element
+        if (this.app.backgroundImage) {
+            this.app.backgroundImage.element = null;
+        }
+    }
+    
+    /**
+     * Update background image opacity
+     * @param {number} opacity - Opacity value (0-1)
+     */
+    updateBackgroundImageOpacity(opacity) {
+        if (!this.backgroundImageContainer) return;
+        
+        const img = this.backgroundImageContainer.querySelector('#background-image');
+        if (img) {
+            img.style.opacity = opacity.toString();
+        }
+    }
+    
+    /**
+     * Toggle background image visibility
+     * @param {boolean} visible - Whether to show the image
+     */
+    toggleBackgroundImageVisibility(visible) {
+        if (!this.backgroundImageContainer) return;
+        
+        const img = this.backgroundImageContainer.querySelector('#background-image');
+        if (img) {
+            img.style.display = visible ? 'block' : 'none';
+        }
     }
     
     // Delegate grid drawing to grid manager

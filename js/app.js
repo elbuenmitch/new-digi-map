@@ -21,12 +21,12 @@ class App {
         // Element types configuration
         this.elementTypes = {
             Location: {
-                color: '#FFC580',
+                color: '#FFDDB3',
                 showName: true,
                 nextId: 1
             },
             Barrier: {
-                color: '#444444',
+                color: '#787878',
                 showName: false,
                 nextId: 1
             }
@@ -37,6 +37,21 @@ class App {
         
         // Store all elements created
         this.elements = [];
+        
+        // Background image state
+        this.backgroundImage = {
+            url: null,
+            opacity: 1.0,
+            showImage: true,
+            originalWidth: 0,
+            originalHeight: 0,
+            element: null,
+            pendingFile: null
+        };
+        
+        // Current map information
+        this.currentCentercode = null;
+        this.currentFloor = null;
         
         // Set up event listeners
         this.setupEventListeners();
@@ -230,6 +245,264 @@ class App {
     
     getZoomStepSize() {
         return this.settings.getZoomStepSize();
+    }
+    
+    /**
+     * Process and set background image from a file
+     * @param {File} file - The image file
+     * @returns {Promise<Object>} Image dimensions
+     */
+    async setBackgroundImageFromFile(file) {
+        if (!file || !file.type.match('image.*')) {
+            throw new Error('Invalid image file');
+        }
+        
+        // Store the file for later upload if map is saved
+        this.backgroundImage.pendingFile = file;
+        
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            
+            reader.onload = (e) => {
+                const img = new Image();
+                
+                img.onload = () => {
+                    // Store dimensions
+                    this.backgroundImage.originalWidth = img.width;
+                    this.backgroundImage.originalHeight = img.height;
+                    this.backgroundImage.url = e.target.result;
+                    
+                    // Adjust canvas size if needed to fit the image
+                    if (this.elements.length === 0) {
+                        this.adjustCanvasToImage(img.width, img.height);
+                    }
+                    
+                    // Display the image
+                    this.canvas.setBackgroundImage(
+                        e.target.result,
+                        this.backgroundImage.opacity,
+                        this.backgroundImage.showImage,
+                        img.width,
+                        img.height
+                    );
+                    
+                    resolve({
+                        width: img.width,
+                        height: img.height
+                    });
+                };
+                
+                img.onerror = () => {
+                    reject(new Error('Failed to load image'));
+                };
+                
+                img.src = e.target.result;
+            };
+            
+            reader.onerror = () => {
+                reject(new Error('Failed to read image file'));
+            };
+            
+            reader.readAsDataURL(file);
+        });
+    }
+    
+    /**
+     * Adjust canvas dimensions to fit the image
+     * @param {number} imageWidth - Original image width
+     * @param {number} imageHeight - Original image height
+     * @returns {boolean} Whether canvas was resized
+     */
+    adjustCanvasToImage(imageWidth, imageHeight) {
+        // Only adjust if no elements exist
+        if (this.elements.length > 0) {
+            return false;
+        }
+        
+        const cellSize = this.getCellSize();
+        
+        // Calculate cells needed for width and height
+        const widthInCells = Math.ceil(imageWidth / cellSize);
+        const heightInCells = Math.ceil(imageHeight / cellSize);
+        
+        // Update settings
+        this.settings.canvasWidth = widthInCells;
+        this.settings.canvasHeight = heightInCells;
+        
+        // Redraw canvas with new dimensions
+        this.canvas.updateCanvasDimensions();
+        this.canvas.drawGrid();
+        
+        return true;
+    }
+    
+    /**
+     * Set background image opacity
+     * @param {number} opacity - Opacity value (0-1)
+     */
+    setBackgroundImageOpacity(opacity) {
+        if (opacity < 0) opacity = 0;
+        if (opacity > 1) opacity = 1;
+        
+        this.backgroundImage.opacity = opacity;
+        this.canvas.updateBackgroundImageOpacity(opacity);
+        
+        // If we have a saved map, update in database
+        if (this.currentCentercode && this.currentFloor) {
+            this.database.updateBackgroundImageSettings(this.currentCentercode, this.currentFloor, {
+                opacity: opacity
+            }).catch(error => console.error('Error updating image opacity:', error));
+        }
+    }
+    
+    /**
+     * Toggle background image visibility
+     * @param {boolean} visible - Visibility state
+     */
+    toggleBackgroundImageVisibility(visible) {
+        this.backgroundImage.showImage = visible;
+        this.canvas.toggleBackgroundImageVisibility(visible);
+        
+        // If we have a saved map, update in database
+        if (this.currentCentercode && this.currentFloor) {
+            this.database.updateBackgroundImageSettings(this.currentCentercode, this.currentFloor, {
+                showImage: visible
+            }).catch(error => console.error('Error updating image visibility:', error));
+        }
+    }
+    
+    /**
+     * Save background image to database
+     * @returns {Promise<boolean>} Success state
+     */
+    async saveBackgroundImage() {
+        if (!this.currentCentercode || !this.currentFloor) {
+            throw new Error('No active map to associate image with');
+        }
+        
+        if (!this.backgroundImage.pendingFile && !this.backgroundImage.url) {
+            return false; // Nothing to save
+        }
+        
+        try {
+            // Upload image file if we have one
+            if (this.backgroundImage.pendingFile) {
+                const metadata = {
+                    opacity: this.backgroundImage.opacity,
+                    showImage: this.backgroundImage.showImage,
+                    originalWidth: this.backgroundImage.originalWidth,
+                    originalHeight: this.backgroundImage.originalHeight
+                };
+                
+                const imageData = await this.database.uploadBackgroundImage(
+                    this.currentCentercode,
+                    this.currentFloor,
+                    this.backgroundImage.pendingFile,
+                    metadata
+                );
+                
+                // Update our state with the stored data
+                this.backgroundImage.url = imageData.publicUrl;
+                this.backgroundImage.pendingFile = null; // Clear pending file
+                
+                return true;
+            } else if (this.backgroundImage.url) {
+                // We have a URL but no file, just update settings
+                await this.database.updateBackgroundImageSettings(
+                    this.currentCentercode,
+                    this.currentFloor,
+                    {
+                        opacity: this.backgroundImage.opacity,
+                        showImage: this.backgroundImage.showImage
+                    }
+                );
+                
+                return true;
+            }
+            
+            return false;
+        } catch (error) {
+            console.error('Error saving background image:', error);
+            throw error;
+        }
+    }
+    
+    /**
+     * Load background image for the current map
+     * @param {string} centercode - Map centercode
+     * @param {string} floor - Map floor
+     * @returns {Promise<boolean>} Success state
+     */
+    async loadBackgroundImage(centercode, floor) {
+        try {
+            // Set current map info
+            this.currentCentercode = centercode;
+            this.currentFloor = floor;
+            
+            // Check if there's an image for this map
+            const imageData = await this.database.getBackgroundImage(centercode, floor);
+            
+            if (imageData) {
+                // Check if the publicUrl is valid
+                if (!imageData.publicUrl) {
+                    this.clearBackgroundImage();
+                    return false;
+                }
+                
+                let imageUrl = imageData.publicUrl;
+                
+                // Reset previous image state
+                this.backgroundImage = {
+                    url: imageUrl,
+                    opacity: imageData.opacity || 1.0,
+                    showImage: imageData.show_image !== undefined ? imageData.show_image : true,
+                    originalWidth: imageData.original_width || 0,
+                    originalHeight: imageData.original_height || 0,
+                    element: null,
+                    pendingFile: null
+                };
+                
+                // Display the image with error handling
+                try {
+                    this.canvas.setBackgroundImage(
+                        imageUrl,
+                        this.backgroundImage.opacity,
+                        this.backgroundImage.showImage,
+                        this.backgroundImage.originalWidth,
+                        this.backgroundImage.originalHeight
+                    );
+                    return true;
+                } catch (imageError) {
+                    this.clearBackgroundImage();
+                    return false;
+                }
+            } else {
+                // No image for this map
+                this.clearBackgroundImage();
+                return false;
+            }
+        } catch (error) {
+            console.error('Error loading background image:', error);
+            this.clearBackgroundImage();
+            return false;
+        }
+    }
+    
+    /**
+     * Clear background image
+     */
+    clearBackgroundImage() {
+        this.backgroundImage = {
+            url: null,
+            opacity: 1.0,
+            showImage: true,
+            originalWidth: 0,
+            originalHeight: 0,
+            element: null,
+            pendingFile: null
+        };
+        
+        this.canvas.clearBackgroundImage();
     }
 }
 

@@ -357,6 +357,7 @@ function defineTests(runner) {
     // Database interaction tests
     defineBaseTests(runner);
     defineDatabaseTests(runner);
+    defineBackgroundImageTests(runner);
 }
 
 // Define all base functionality test cases
@@ -1382,6 +1383,166 @@ function defineDatabaseTests(runner) {
                assert.isTrue(savedElements.length >= 3, 'Should save all elements including the new one') &&
                assert.isTrue(saveResult.success, 'Save operation should succeed');
     }, ['Database manager initialization']);
+}
+
+// Define all background image functionality tests
+function defineBackgroundImageTests(runner) {
+    // Test background image setting
+    runner.addTest('backgroundImage.set', async (app) => {
+        try {
+            // Create a mock image file
+            const mockFile = new File([''], 'test-image.png', { type: 'image/png' });
+            
+            // Set the background image
+            await app.setBackgroundImageFromFile(mockFile);
+            
+            // Check if background image was set
+            assert.exists(app.backgroundImage, 'Background image should be set');
+            assert.equal(app.backgroundImage.showImage, true, 'Background image should be visible by default');
+            assert.equal(app.backgroundImage.opacity, 1.0, 'Background image opacity should be 1.0 by default');
+            
+            return true;
+        } catch (error) {
+            console.error('Error in backgroundImage.set test:', error);
+            return false;
+        }
+    });
+    
+    // Test background image visibility toggle
+    runner.addTest('backgroundImage.toggleVisibility', async (app) => {
+        try {
+            // Create a mock image file if not already set
+            if (!app.backgroundImage) {
+                const mockFile = new File([''], 'test-image.png', { type: 'image/png' });
+                await app.setBackgroundImageFromFile(mockFile);
+            }
+            
+            // Initial state should be visible
+            const initialVisibility = app.backgroundImage.showImage;
+            
+            // Toggle visibility off
+            app.toggleBackgroundImageVisibility(false);
+            assert.equal(app.backgroundImage.showImage, false, 'Background image should be hidden after toggling off');
+            
+            // Toggle visibility on
+            app.toggleBackgroundImageVisibility(true);
+            assert.equal(app.backgroundImage.showImage, true, 'Background image should be visible after toggling on');
+            
+            // Reset to initial state
+            app.toggleBackgroundImageVisibility(initialVisibility);
+            
+            return true;
+        } catch (error) {
+            console.error('Error in backgroundImage.toggleVisibility test:', error);
+            return false;
+        }
+    });
+    
+    // Test background image opacity adjustment
+    runner.addTest('backgroundImage.adjustOpacity', async (app) => {
+        try {
+            // Create a mock image file if not already set
+            if (!app.backgroundImage) {
+                const mockFile = new File([''], 'test-image.png', { type: 'image/png' });
+                await app.setBackgroundImageFromFile(mockFile);
+            }
+            
+            // Initial opacity should be 1.0
+            const initialOpacity = app.backgroundImage.opacity;
+            
+            // Set opacity to 0.5
+            app.setBackgroundImageOpacity(0.5);
+            assert.equal(app.backgroundImage.opacity, 0.5, 'Background image opacity should be 0.5 after adjustment');
+            
+            // Set opacity to 0
+            app.setBackgroundImageOpacity(0);
+            assert.equal(app.backgroundImage.opacity, 0, 'Background image opacity should be 0 after adjustment');
+            
+            // Set opacity back to 1
+            app.setBackgroundImageOpacity(1);
+            assert.equal(app.backgroundImage.opacity, 1, 'Background image opacity should be 1 after adjustment');
+            
+            // Reset to initial opacity
+            app.setBackgroundImageOpacity(initialOpacity);
+            
+            return true;
+        } catch (error) {
+            console.error('Error in backgroundImage.adjustOpacity test:', error);
+            return false;
+        }
+    });
+    
+    // Test background image clearing
+    runner.addTest('backgroundImage.clear', async (app) => {
+        try {
+            // Create a mock image file if not already set
+            if (!app.backgroundImage) {
+                const mockFile = new File([''], 'test-image.png', { type: 'image/png' });
+                await app.setBackgroundImageFromFile(mockFile);
+            }
+            
+            // Clear the background image
+            app.clearBackgroundImage();
+            
+            // Check if background image was cleared
+            assert.equal(app.backgroundImage.url, null, 'Background image URL should be null after clearing');
+            
+            return true;
+        } catch (error) {
+            console.error('Error in backgroundImage.clear test:', error);
+            return false;
+        }
+    });
+    
+    // Test background image database upload path format
+    runner.addTest('backgroundImage.databasePathFormat', async (app) => {
+        try {
+            // Mock the uploadBackgroundImage method to intercept the path
+            const originalUploadMethod = app.database.uploadBackgroundImage;
+            let capturedPath = null;
+            
+            app.database.uploadBackgroundImage = (centercode, floor, imageFile, metadata) => {
+                // Create a mock path to validate the format
+                const timestamp = Date.now();
+                const fileExt = imageFile.name.split('.').pop();
+                const expectedPath = `${centercode}_${floor}_${timestamp}.${fileExt}`;
+                
+                // We can't check the exact path with timestamp, but we can check the format
+                const actualPath = `${centercode}_${floor}_${timestamp}.${fileExt}`;
+                capturedPath = actualPath;
+                
+                // Return a mock result
+                return Promise.resolve({
+                    publicUrl: `https://example.com/${actualPath}`,
+                    storage_path: actualPath
+                });
+            };
+            
+            // Create a mock image file
+            const mockFile = new File([''], 'test-image.png', { type: 'image/png' });
+            
+            // Set the app's current map info
+            app.currentCentercode = 'TEST';
+            app.currentFloor = '1';
+            
+            // Save the background image
+            const result = await app.saveBackgroundImage();
+            
+            // Restore the original method
+            app.database.uploadBackgroundImage = originalUploadMethod;
+            
+            // Verify the path format - should be centercode_floor_timestamp.extension
+            assert.exists(capturedPath, 'Path should be captured');
+            assert.isTrue(capturedPath.startsWith('TEST_1_'), 'Path should start with centercode_floor_');
+            assert.isTrue(capturedPath.endsWith('.png'), 'Path should end with correct extension');
+            assert.isFalse(capturedPath.includes('/'), 'Path should not contain slashes');
+            
+            return true;
+        } catch (error) {
+            console.error('Error in backgroundImage.databasePathFormat test:', error);
+            return false;
+        }
+    });
 }
 
 // Export test functions

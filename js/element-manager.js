@@ -50,16 +50,16 @@ export class ElementManager {
         // Get color from elementTypes configuration
         const typeConfig = this.app.elementTypes[type];
         const elementColor = typeConfig.color;
-        console.log(`!!! createElement DEBUG - Using color: ${elementColor} for type: ${type}`);
+        // console.log(`!!! createElement DEBUG - Using color: ${elementColor} for type: ${type}`);
         element.style.backgroundColor = elementColor;
         
         // Set opacity based on where element is being created from
         if (isLoadingFromDB) {
             element.style.opacity = '1.0'; // Fully opaque for loaded elements
-            console.log('!!! createElement DEBUG - Setting opacity to 1.0 for loaded element');
+            // console.log('!!! createElement DEBUG - Setting opacity to 1.0 for loaded element');
         } else {
             element.style.opacity = '0.7'; // Semi-transparent for new elements
-            console.log('!!! createElement DEBUG - Setting opacity to 0.7 for new element');
+            // console.log('!!! createElement DEBUG - Setting opacity to 0.7 for new element');
         }
         
         // Add ID text if showName is true for this element type
@@ -68,28 +68,28 @@ export class ElementManager {
             idText.className = 'element-id';
             idText.textContent = elementId;
             element.appendChild(idText);
-            console.log('!!! createElement DEBUG - Added ID text element:', idText);
+            // console.log('!!! createElement DEBUG - Added ID text element:', idText);
         }
         
-        console.log('Appending element to canvas:', element);
+        // console.log('Appending element to canvas:', element);
         
         // Make sure we're adding to the right canvas element
-        console.log('Canvas element we are adding to:', this.canvas);
+        // console.log('Canvas element we are adding to:', this.canvas);
         
         // Check if the canvas exists and is a valid element
         if (!this.canvas || !this.canvas.appendChild) {
-            console.error('Canvas is not a valid DOM element', this.canvas);
+            // console.error('Canvas is not a valid DOM element', this.canvas);
             // Try to get the canvas directly
             this.canvas = document.getElementById('canvas');
-            console.log('Retrieved canvas from document:', this.canvas);
+            // console.log('Retrieved canvas from document:', this.canvas);
         }
         
         // Add element to canvas
         try {
             this.canvas.appendChild(element);
-            console.log('Element successfully appended to canvas');
+            // console.log('Element successfully appended to canvas');
         } catch (e) {
-            console.error('Failed to append element to canvas:', e);
+            // console.error('Failed to append element to canvas:', e);
         }
         
         // We already have typeConfig from above, reusing it here
@@ -105,7 +105,7 @@ export class ElementManager {
             showName: typeConfig.showName    // Get showName property from type config
         };
         
-        console.log('Adding element to app.elements array:', newElement);
+        // console.log('Adding element to app.elements array:', newElement);
         this.app.elements.push(newElement);
         
         // Return the created element object
@@ -223,22 +223,22 @@ export class ElementManager {
     // Copy selected elements
     copySelectedElements() {
         if (this.selectedElements.length === 0) {
-            console.log('No elements selected for copy');
+            // console.log('No elements selected for copy');
             return 0;
         }
         
         this.copiedElements = this.selectedElements.map(el => ({...el}));
-        console.log('Copied elements:', this.copiedElements);
+        // console.log('Copied elements:', this.copiedElements);
         return this.copiedElements.length;
     }
     
     // Paste copied elements
     pasteElements() {
-        console.log('!!! ElementManager: Attempting to paste elements, stack trace:', new Error().stack);
-        console.log('!!! ElementManager: Copied elements array:', JSON.stringify(this.copiedElements));
+        // console.log('!!! ElementManager: Attempting to paste elements, stack trace:', new Error().stack);
+        // console.log('!!! ElementManager: Copied elements array:', JSON.stringify(this.copiedElements));
         
         if (!this.copiedElements || this.copiedElements.length === 0) {
-            console.log('!!! ElementManager: No elements to paste');
+            // console.log('!!! ElementManager: No elements to paste');
             return 0;
         }
         
@@ -247,24 +247,24 @@ export class ElementManager {
         
         // Create new elements with offset
         const offset = 20; // Pixel offset for pasted elements
-        console.log('!!! ElementManager: Creating new elements with offset:', offset);
+        // console.log('!!! ElementManager: Creating new elements with offset:', offset);
         
         const newElements = [];
         
         // Use the existing createElement method to create each element
         this.copiedElements.forEach(el => {
-            console.log('!!! ElementManager: Processing copied element for paste:', JSON.stringify(el));
-            console.log('!!! ElementManager: Getting color from elementTypes:', JSON.stringify(this.app.elementTypes[el.type]));
+            // console.log('!!! ElementManager: Processing copied element for paste:', JSON.stringify(el));
+            // console.log('!!! ElementManager: Getting color from elementTypes:', JSON.stringify(this.app.elementTypes[el.type]));
             
             // Get next ID for the element type
             const elementType = this.app.elementTypes[el.type];
             const nextId = elementType.nextId++;
             const elementId = `${el.type.toLowerCase()}_${nextId}`;
-            console.log(`!!! ElementManager: Generated ID: ${elementId} for type: ${el.type}`);
+            // console.log(`!!! ElementManager: Generated ID: ${elementId} for type: ${el.type}`);
             
             // Use the existing createElement method to create element
             // We'll inspect what createElement is doing with the element
-            console.log('!!! ElementManager: Calling createElement with type:', el.type);
+            // console.log('!!! ElementManager: Calling createElement with type:', el.type);
             const newElement = this.createElement(
                 el.type,
                 el.x + offset,
@@ -274,14 +274,14 @@ export class ElementManager {
                 elementId // Pass the generated ID
             );
             
-            console.log('!!! ElementManager: createElement returned:', JSON.stringify(newElement));
+            // console.log('!!! ElementManager: createElement returned:', JSON.stringify(newElement));
             newElements.push(newElement);
             
             // Select the new element
             this.selectElement(newElement, true);
         });
         
-        console.log('!!! ElementManager: Pasted elements created:', newElements.length);
+        // console.log('!!! ElementManager: Pasted elements created:', newElements.length);
         return newElements.length;
     }
     
